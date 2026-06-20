@@ -478,5 +478,128 @@ public static class DbSeeder
             context.LoyaltyTierConfigs.AddRange(loyaltyConfigs);
             context.SaveChanges();
         }
+
+        // 10. Seed Orders for Dashboard charts
+        if (!context.Orders.Any())
+        {
+            var random = new Random();
+            var orders = new List<Order>();
+            
+            var traSua = context.Products.FirstOrDefault(p => p.Name == "Trà Sữa Truyền Thống");
+            var caPheSua = context.Products.FirstOrDefault(p => p.Name == "Cà Phê Sữa Đá");
+            var tiramisu = context.Products.FirstOrDefault(p => p.Name == "Bánh Tiramisu");
+            
+            var staff = context.Staffs.FirstOrDefault(s => s.Role == StaffRole.Cashier) ?? context.Staffs.First();
+            var customer = context.Customers.FirstOrDefault();
+
+            var now = DateTime.UtcNow;
+            
+            for (int i = 6; i >= 0; i--)
+            {
+                var date = now.AddDays(-i);
+                // Seed 2-4 orders per day
+                int ordersCount = random.Next(2, 5);
+                for (int j = 0; j < ordersCount; j++)
+                {
+                    var orderTime = new DateTime(date.Year, date.Month, date.Day, random.Next(8, 21), random.Next(0, 60), 0, DateTimeKind.Utc);
+                    var isCompleted = random.Next(0, 10) < 9; // 90% completed
+                    var subtotal = 0m;
+                    
+                    var orderItems = new List<OrderItem>();
+                    
+                    if (traSua != null && random.Next(0, 2) == 0)
+                    {
+                        var qty = random.Next(1, 3);
+                        var price = traSua.BasePrice;
+                        subtotal += price * qty;
+                        orderItems.Add(new OrderItem
+                        {
+                            ProductId = traSua.Id,
+                            Quantity = qty,
+                            UnitPrice = price,
+                            ItemTotal = price * qty,
+                            Notes = "",
+                            SizeLabel = "S",
+                            SugarLevel = "100",
+                            IceLevel = "100",
+                            BarStatus = isCompleted ? "Done" : "Pending",
+                            PastryStatus = "NA"
+                        });
+                    }
+
+                    if (caPheSua != null && (orderItems.Count == 0 || random.Next(0, 2) == 0))
+                    {
+                        var qty = random.Next(1, 3);
+                        var price = caPheSua.BasePrice;
+                        subtotal += price * qty;
+                        orderItems.Add(new OrderItem
+                        {
+                            ProductId = caPheSua.Id,
+                            Quantity = qty,
+                            UnitPrice = price,
+                            ItemTotal = price * qty,
+                            Notes = "",
+                            SizeLabel = "S",
+                            SugarLevel = "100",
+                            IceLevel = "100",
+                            BarStatus = isCompleted ? "Done" : "Pending",
+                            PastryStatus = "NA"
+                        });
+                    }
+
+                    if (tiramisu != null && random.Next(0, 3) == 0)
+                    {
+                        var qty = 1;
+                        var price = tiramisu.BasePrice;
+                        subtotal += price * qty;
+                        orderItems.Add(new OrderItem
+                        {
+                            ProductId = tiramisu.Id,
+                            Quantity = qty,
+                            UnitPrice = price,
+                            ItemTotal = price * qty,
+                            Notes = "",
+                            SizeLabel = "Normal",
+                            SugarLevel = "NA",
+                            IceLevel = "NA",
+                            BarStatus = "NA",
+                            PastryStatus = isCompleted ? "Done" : "Pending"
+                        });
+                    }
+
+                    if (orderItems.Count == 0) continue; // Skip if empty
+
+                    var discount = random.Next(0, 4) == 0 ? 5000m : 0m;
+                    var total = subtotal - discount;
+
+                    orders.Add(new Order
+                    {
+                        OrderCode = $"ORD{orderTime:yyyyMMddHHmmss}{random.Next(10, 99)}",
+                        Type = random.Next(0, 2) == 0 ? "DineIn" : "TakeAway",
+                        TableNumber = random.Next(0, 2) == 0 ? random.Next(1, 10).ToString() : null,
+                        SubOrderIndex = 1,
+                        CustomerId = customer?.Id,
+                        StaffId = staff.Id,
+                        CustomerName = customer?.FullName ?? "Khách vãng lai",
+                        CustomerPhone = customer?.Phone ?? "",
+                        Status = isCompleted ? OrderStatus.Completed : OrderStatus.Cancelled,
+                        PaymentStatus = isCompleted ? "Paid" : "Unpaid",
+                        PaymentMethod = isCompleted ? (random.Next(0, 2) == 0 ? "Cash" : "Transfer") : "",
+                        SubTotal = subtotal,
+                        DiscountAmount = discount,
+                        TotalAmount = total,
+                        AmountReceived = isCompleted ? total : 0m,
+                        AmountChange = 0m,
+                        ConfirmedAt = orderTime.AddMinutes(2),
+                        CompletedAt = isCompleted ? orderTime.AddMinutes(15) : null,
+                        CreatedAt = orderTime,
+                        OrderItems = orderItems
+                    });
+                }
+            }
+
+            context.Orders.AddRange(orders);
+            context.SaveChanges();
+        }
     }
 }

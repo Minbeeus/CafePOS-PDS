@@ -1059,12 +1059,14 @@ CafePOS.sln
 │       ├── PointResetJob.cs        ← Reset điểm mỗi 2 tháng
 │       └── ScheduledOrderJob.cs    ← Auto-trigger đơn hẹn giờ
 │
-└── CafePOS.Web/                    ← Razor Pages Frontend
-    ├── Pages/
+└── CafePOS.Web/                    ← ASP.NET Core MVC Frontend
+    ├── Controllers/                ← Điều hướng các luồng yêu cầu
+    ├── Views/                      ← Giao diện người dùng
     │   ├── POS/                    ← Màn hình POS
     │   ├── PDS/                    ← Màn hình PDS Bar/Pastry
     │   ├── Admin/                  ← Admin Dashboard
-    │   └── Customer/               ← Online ordering website
+    │   ├── Customer/               ← Online ordering website
+    │   └── Home/                   ← Trang chủ công cộng
     └── wwwroot/
 ```
 

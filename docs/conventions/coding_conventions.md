@@ -30,9 +30,9 @@ Chúng ta tuân theo chuẩn khuyến nghị chung của Microsoft:
 
 ---
 
-## 2. Quy chuẩn Frontend (Razor Pages, HTML, CSS, JavaScript)
+## 2. Quy chuẩn Frontend (MVC Views, HTML, CSS, JavaScript)
 
-### 2.1 Quy tắc đặt tên trong HTML & Razor Pages
+### 2.1 Quy tắc đặt tên trong HTML & Views
 * **HTML Tags**: Viết chữ thường toàn bộ (ví dụ: `<div>`, `<span>`, `<input>`).
 * **Thuộc tính ID (`id`)**: 
   * Định dạng bằng **kebab-case** (ví dụ: `order-summary`, `btn-checkout`, `input-voucher-code`).
@@ -64,15 +64,15 @@ Chúng ta tuân theo chuẩn khuyến nghị chung của Microsoft:
 
 ### 2.4 Quy tắc tổ chức tệp tin tĩnh (Static File Structure)
 * **Quy tắc tệp tin theo thành phần/trang:**
-  * Mỗi trang giao diện hoặc thành phần HTML/Razor Page sẽ đi kèm một file CSS và một file JS (nếu có) **cùng tên** với file HTML đó để dễ dàng quản lý cô lập (Ví dụ: `POS.cshtml` sẽ đi kèm `POS.css` và `POS.js`).
+  * Mỗi trang giao diện hoặc thành phần HTML/MVC View sẽ đi kèm một file CSS và một file JS (nếu có) **cùng tên** với file HTML đó để dễ dàng quản lý cô lập (Ví dụ: `Index.cshtml` của POS sẽ đi kèm `Index.css` và `Index.js`).
 * **Quy tắc cấu trúc thư mục đồng bộ giữa HTML, CSS, và JS:**
-  * Cấu trúc thư mục chứa các file giao diện (HTML/Razor Pages) và cấu trúc thư mục chứa các file tĩnh (CSS/JS) tương ứng phải hoàn toàn giống nhau.
+  * Cấu trúc thư mục chứa các file giao diện (MVC Views) và cấu trúc thư mục chứa các file tĩnh (CSS/JS) tương ứng phải hoàn toàn giống nhau.
   * Đường dẫn tương ứng:
-    * Razor Page: `Pages/[Module]/[PageName].cshtml`
-    * CSS tương ứng: `wwwroot/css/[Module]/[PageName].css`
-    * JS tương ứng: `wwwroot/js/[Module]/[PageName].js`
+    * MVC View: `Views/[Controller]/[Action].cshtml`
+    * CSS tương ứng: `wwwroot/css/[Controller]/[Action].css`
+    * JS tương ứng: `wwwroot/js/[Controller]/[Action].js`
   * Ví dụ cụ thể:
-    * Trang POS: `Pages/POS/Index.cshtml` -> CSS: `wwwroot/css/POS/Index.css`, JS: `wwwroot/js/POS/Index.js`.
+    * Trang POS: `Views/POS/Index.cshtml` -> CSS: `wwwroot/css/POS/Index.css`, JS: `wwwroot/js/POS/Index.js`.
 * **Quy tắc thành phần dùng chung (Shared/Common Components):**
   * Các thành phần chung xuất hiện ở nhiều trang như Thanh điều hướng (`nav`), Chân trang (`footer`), Thanh bên (`sidebar`) sẽ được tách thành các file CSS/JS riêng biệt (Ví dụ: `nav.css` / `nav.js`, `footer.css` / `footer.js`). Không gộp chung vào style/script của một trang cụ thể.
 

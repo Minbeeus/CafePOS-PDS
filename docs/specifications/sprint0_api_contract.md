@@ -937,11 +937,13 @@ CafeManager.sln
 │   └── BackgroundJobs/
 │       └── PointResetJob.cs      # Reset điểm mỗi 2 tháng
 │
-└── CafeManager.Web/              # Razor Pages (Frontend)
-    ├── Pages/
+└── CafeManager.Web/              # ASP.NET Core MVC (Frontend)
+    ├── Controllers/              # Điều hướng các luồng yêu cầu
+    ├── Views/                    # Giao diện người dùng
     │   ├── POS/
     │   ├── PDS/
     │   ├── Admin/
-    │   └── Customer/
+    │   ├── Customer/
+    │   └── Home/
     └── wwwroot/
 ```
