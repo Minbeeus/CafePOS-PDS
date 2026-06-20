@@ -1,0 +1,828 @@
+@{
+    ViewData["Title"] = "Trang quản trị - Dashboard";
+    Layout = null; // Single Page Dashboard Layout
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - CafePOS</title>
+    <!-- Outfit Font & Nunito Sans Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Nunito+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <!-- Material Symbols for premium icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <!-- Chart.js CDN for interactive graphics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Admin Dashboard Styling -->
+    <link rel="stylesheet" href="~/css/Admin/Index.css" asp-append-version="true" />
+</head>
+<body class="admin-body">
+
+    <!-- Main Shell Container -->
+    <div class="admin-shell">
+        
+        <!-- Left Sidebar Section -->
+        <aside class="admin-sidebar shadow-sm">
+            <div class="sidebar-header">
+                <span class="material-symbols-outlined logo-icon">local_cafe</span>
+                <div class="logo-details">
+                    <span class="logo-title">CafePOS Admin</span>
+                    <span class="logo-subtitle">Chi nhánh chính</span>
+                </div>
+            </div>
+            
+            <div class="px-3 mb-4">
+                <button class="btn btn-new-order w-100 py-2.5 d-flex align-items-center justify-content-center gap-2" onclick="showNewOrderToast()">
+                    <span class="material-symbols-outlined font-bold">add</span>
+                    <span>Tạo đơn mới</span>
+                </button>
+            </div>
+            
+            <nav class="sidebar-menu flex-grow-1">
+                <a href="#" class="menu-item active" data-tab="dashboard">
+                    <span class="material-symbols-outlined">dashboard</span>
+                    <span>Dashboard</span>
+                </a>
+                
+                <div class="menu-group">
+                    <a href="#" class="menu-item collapsed-trigger" onclick="toggleMenuCollapse('menu-mgmt-sub')">
+                        <span class="material-symbols-outlined">restaurant_menu</span>
+                        <span>Quản lý thực đơn</span>
+                        <span class="material-symbols-outlined arrow-icon ms-auto">expand_more</span>
+                    </a>
+                    <div id="menu-mgmt-sub" class="submenu-items collapse show">
+                        <a href="#" class="submenu-item" data-tab="products">
+                            <span class="material-symbols-outlined text-[16px]">local_drink</span>
+                            <span>Sản phẩm</span>
+                        </a>
+                        <a href="#" class="submenu-item" data-tab="categories">
+                            <span class="material-symbols-outlined text-[16px]">folder</span>
+                            <span>Danh mục</span>
+                        </a>
+                        <a href="#" class="submenu-item" data-tab="toppings">
+                            <span class="material-symbols-outlined text-[16px]">add_circle</span>
+                            <span>Topping</span>
+                        </a>
+                    </div>
+                </div>
+                
+                <a href="#" class="menu-item" data-tab="staff">
+                    <span class="material-symbols-outlined">group</span>
+                    <span>Nhân viên</span>
+                </a>
+                
+                <a href="#" class="menu-item" data-tab="vouchers">
+                    <span class="material-symbols-outlined">sell</span>
+                    <span>Vouchers/Khuyến mãi</span>
+                </a>
+                
+                <a href="#" class="menu-item" data-tab="inventory">
+                    <span class="material-symbols-outlined">inventory</span>
+                    <span>Kho nguyên liệu</span>
+                </a>
+                
+                <a href="#" class="menu-item" data-tab="shifts">
+                    <span class="material-symbols-outlined">schedule</span>
+                    <span>Ca làm việc</span>
+                </a>
+                
+                <a href="#" class="menu-item" data-tab="reports">
+                    <span class="material-symbols-outlined">bar_chart</span>
+                    <span>Báo cáo doanh thu</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <a href="#" class="menu-item" data-tab="settings">
+                    <span class="material-symbols-outlined">settings</span>
+                    <span>Cài đặt hệ thống</span>
+                </a>
+                <a href="#" class="menu-item text-danger" onclick="logoutAdmin()">
+                    <span class="material-symbols-outlined text-danger">logout</span>
+                    <span>Đăng xuất</span>
+                </a>
+            </div>
+        </aside>
+        
+        <!-- Right Main View Section -->
+        <main class="admin-main">
+            <!-- Header Nav Bar -->
+            <header class="main-header shadow-sm px-4">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted fw-semibold" id="header-context-title">Dashboard Overview</span>
+                </div>
+                
+                <div class="d-flex align-items-center gap-4 ms-auto">
+                    <!-- Notifications -->
+                    <div class="notification-bell position-relative" onclick="showNotificationToast()">
+                        <span class="material-symbols-outlined icon-btn">notifications</span>
+                        <span class="badge-dot"></span>
+                    </div>
+                    <!-- Question / Info -->
+                    <span class="material-symbols-outlined icon-btn" onclick="showHelpModal()">help</span>
+                    
+                    <!-- Profile User Dropdown -->
+                    <div class="dropdown">
+                        <button class="btn btn-profile d-flex align-items-center gap-2 px-2 py-1" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="avatar-circle">AD</div>
+                            <div class="profile-meta d-none d-md-block text-start">
+                                <span class="profile-name" id="admin-name">Admin</span>
+                                <span class="profile-role" id="admin-role">Chủ cửa hàng</span>
+                            </div>
+                            <span class="material-symbols-outlined profile-arrow">arrow_drop_down</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-2" aria-labelledby="profileDropdown">
+                            <li class="px-3 py-2 bg-light rounded-3 mb-2">
+                                <div class="fw-bold text-dark text-truncate" id="dd-admin-name">Admin Name</div>
+                                <span class="badge bg-primary mt-1" id="dd-admin-role">Chủ cửa hàng</span>
+                            </li>
+                            <li>
+                                <a class="dropdown-item gap-2 py-2" href="/">
+                                    <span class="material-symbols-outlined text-[18px]">home</span>
+                                    <span>Trang bán lẻ</span>
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-2"></li>
+                            <li>
+                                <button class="dropdown-item gap-2 py-2 text-danger fw-semibold w-full text-start border-0 bg-transparent" onclick="logoutAdmin()">
+                                    <span class="material-symbols-outlined text-[18px]">logout</span>
+                                    <span>Đăng xuất</span>
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Views Panel Wrapper -->
+            <div class="main-content-panel p-4">
+                
+                <!-- VIEW 1: DASHBOARD OVERVIEW -->
+                <div id="view-dashboard" class="admin-view-panel active">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="view-title">Tổng quan hoạt động</h2>
+                            <p class="view-subtitle text-muted">Số liệu kinh doanh cập nhật thời gian thực ngày hôm nay.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Stat Cards row -->
+                    <div class="row g-4 mb-4">
+                        <!-- Revenue -->
+                        <div class="col-md-3 col-sm-6">
+                            <div class="stat-card shadow-sm">
+                                <div class="stat-icon-wrapper bg-success-light text-success">
+                                    <span class="material-symbols-outlined">payments</span>
+                                </div>
+                                <div class="stat-details">
+                                    <span class="stat-label">Doanh thu tuần này</span>
+                                    <h3 class="stat-value" id="stat-revenue">0đ</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Orders -->
+                        <div class="col-md-3 col-sm-6">
+                            <div class="stat-card shadow-sm">
+                                <div class="stat-icon-wrapper bg-primary-light text-primary">
+                                    <span class="material-symbols-outlined">receipt_long</span>
+                                </div>
+                                <div class="stat-details">
+                                    <span class="stat-label">Tổng số đơn hàng</span>
+                                    <h3 class="stat-value" id="stat-orders">0</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Active Staff -->
+                        <div class="col-md-3 col-sm-6">
+                            <div class="stat-card shadow-sm">
+                                <div class="stat-icon-wrapper bg-warning-light text-warning">
+                                    <span class="material-symbols-outlined">badge</span>
+                                </div>
+                                <div class="stat-details">
+                                    <span class="stat-label">Nhân viên trực</span>
+                                    <h3 class="stat-value" id="stat-staff">0</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Low Stock alerts -->
+                        <div class="col-md-3 col-sm-6">
+                            <div class="stat-card shadow-sm">
+                                <div class="stat-icon-wrapper bg-danger-light text-danger">
+                                    <span class="material-symbols-outlined">warning_amber</span>
+                                </div>
+                                <div class="stat-details">
+                                    <span class="stat-label">Cảnh báo hết kho</span>
+                                    <h3 class="stat-value" id="stat-stock-alert">0</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-4 mb-4">
+                        <!-- Chart Card -->
+                        <div class="col-lg-8">
+                            <div class="card content-card shadow-sm p-4 h-100">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h5 class="fw-bold mb-0">Biểu đồ doanh thu 7 ngày qua</h5>
+                                    <span class="badge bg-success-light text-success fw-bold px-3 py-2">Đơn vị: VNĐ</span>
+                                </div>
+                                <div class="chart-container" style="position: relative; height:300px; width: 100%;">
+                                    <canvas id="salesChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Mini Inventory warning panel -->
+                        <div class="col-lg-4">
+                            <div class="card content-card shadow-sm p-4 h-100">
+                                <h5 class="fw-bold mb-3">Nguyên liệu sắp hết</h5>
+                                <p class="text-muted small mb-4">Những nguyên liệu thô có mức dự trữ nằm dưới ngưỡng tối thiểu.</p>
+                                
+                                <div class="list-group list-group-flush gap-2" id="dashboard-low-stock-list">
+                                    <!-- Low stock items seeded dynamically -->
+                                    <div class="text-center py-4 text-muted">Đang tải thông tin...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Orders Table -->
+                    <div class="card content-card shadow-sm p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold mb-0">Giao dịch gần đây nhất</h5>
+                            <button class="btn btn-outline-success btn-sm px-3" onclick="switchTab('reports')">Xem chi tiết</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Mã đơn</th>
+                                        <th>Khách hàng</th>
+                                        <th>Ngày lập</th>
+                                        <th>Tổng cộng</th>
+                                        <th>Trạng thái</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashboard-recent-orders">
+                                    <!-- Recent orders dynamically populated -->
+                                    <tr>
+                                        <td colspan="5" class="text-center py-4 text-muted">Đang tải thông tin giao dịch...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- VIEW 2: CATEGORY MANAGEMENT (Matches Screenshot) -->
+                <div id="view-categories" class="admin-view-panel">
+                    
+                    <!-- Breadcrumbs & Header -->
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="#" onclick="switchTab('dashboard')">Quản lý thực đơn</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Danh mục</li>
+                        </ol>
+                    </nav>
+                    
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 card p-4 content-card shadow-sm border-0">
+                        <div class="max-w-[70%]">
+                            <h2 class="view-title mb-1">Quản lý Danh mục</h2>
+                            <p class="view-subtitle text-muted mb-0">Quản lý, phân loại các nhóm thức uống và đồ ăn để tối ưu hóa hiển thị trên màn hình máy POS.</p>
+                        </div>
+                        <button class="btn btn-add-new d-flex align-items-center gap-2" onclick="openAddCategoryModal()">
+                            <span class="material-symbols-outlined">add</span>
+                            <span>Thêm danh mục mới</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Filter and Search Row -->
+                    <div class="card content-card shadow-sm p-3 mb-4">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-md-6 col-lg-4">
+                                <div class="search-input-wrapper">
+                                    <span class="material-symbols-outlined search-icon">search</span>
+                                    <input type="text" class="form-control form-search" id="category-search-input" placeholder="Tìm kiếm danh mục..." oninput="handleCategorySearch(this.value)">
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-lg-8 d-flex justify-content-md-end gap-2">
+                                <button class="btn btn-outline-filter d-flex align-items-center gap-2" onclick="toggleCategoryActiveFilter()">
+                                    <span class="material-symbols-outlined">filter_list</span>
+                                    <span>Lọc</span>
+                                </button>
+                                <button class="btn btn-outline-filter d-flex align-items-center gap-2" onclick="alert('Đang tải cấu hình cột hiển thị...')">
+                                    <span class="material-symbols-outlined">view_column</span>
+                                    <span>Cột</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Categories Table -->
+                    <div class="card content-card shadow-sm overflow-hidden">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 48px;">
+                                            <input type="checkbox" class="form-check-input" id="check-all-categories" onclick="toggleSelectAllCategories(this)">
+                                        </th>
+                                        <th>Tên danh mục</th>
+                                        <th>Trạm pha chế</th>
+                                        <th>Số lượng món</th>
+                                        <th>Trạng thái</th>
+                                        <th class="text-end" style="padding-right: 24px;">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="categories-table-body">
+                                    <!-- Dynamic rows loaded from API -->
+                                    <tr>
+                                        <td colspan="6" class="text-center py-5 text-muted">
+                                            <div class="spinner-border text-success" role="status"></div>
+                                            <div class="mt-2">Đang tải danh sách danh mục...</div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Table Footer / Pagination -->
+                        <div class="px-4 py-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2 bg-light">
+                            <div class="text-muted small" id="category-pagination-info">
+                                Hiển thị 0-0 trên tổng số 0 danh mục
+                            </div>
+                            <nav aria-label="Page navigation" class="mb-0">
+                                <ul class="pagination pagination-sm mb-0" id="category-pagination-controls">
+                                    <!-- Pagination logic -->
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW 3: PRODUCT MANAGEMENT -->
+                <div id="view-products" class="admin-view-panel">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="#" onclick="switchTab('dashboard')">Quản lý thực đơn</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Sản phẩm</li>
+                        </ol>
+                    </nav>
+                    
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 card p-4 content-card shadow-sm border-0">
+                        <div>
+                            <h2 class="view-title mb-1">Quản lý Sản phẩm</h2>
+                            <p class="view-subtitle text-muted mb-0">Thiết lập chi tiết thực đơn, giá bán cơ sở, phân loại theo kích thước và tuỳ chỉnh sugar/ice.</p>
+                        </div>
+                        <button class="btn btn-add-new d-flex align-items-center gap-2" onclick="openAddProductModal()">
+                            <span class="material-symbols-outlined">add</span>
+                            <span>Thêm sản phẩm mới</span>
+                        </button>
+                    </div>
+                    
+                    <div class="card content-card shadow-sm p-3 mb-4">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-md-6 col-lg-4">
+                                <div class="search-input-wrapper">
+                                    <span class="material-symbols-outlined search-icon">search</span>
+                                    <input type="text" class="form-control form-search" id="product-search-input" placeholder="Tìm kiếm sản phẩm..." oninput="handleProductSearch(this.value)">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Products Table -->
+                    <div class="card content-card shadow-sm overflow-hidden">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Hình ảnh</th>
+                                        <th>Tên sản phẩm</th>
+                                        <th>Danh mục</th>
+                                        <th>Giá cơ sở</th>
+                                        <th>Size</th>
+                                        <th>Trạng thái</th>
+                                        <th class="text-end" style="padding-right: 24px;">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="products-table-body">
+                                    <tr>
+                                        <td colspan="7" class="text-center py-5 text-muted">Đang tải sản phẩm...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW 4: TOPPING MANAGEMENT -->
+                <div id="view-toppings" class="admin-view-panel">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="#" onclick="switchTab('dashboard')">Quản lý thực đơn</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Topping</li>
+                        </ol>
+                    </nav>
+                    
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 card p-4 content-card shadow-sm border-0">
+                        <div>
+                            <h2 class="view-title mb-1">Quản lý Topping</h2>
+                            <p class="view-subtitle text-muted mb-0">Thiết lập danh mục topping đi kèm và giá bán tương ứng cho từng loại.</p>
+                        </div>
+                        <button class="btn btn-add-new d-flex align-items-center gap-2" onclick="openAddToppingModal()">
+                            <span class="material-symbols-outlined">add</span>
+                            <span>Thêm topping mới</span>
+                        </button>
+                    </div>
+                    
+                    <div class="card content-card shadow-sm p-3 mb-4">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-md-6 col-lg-4">
+                                <div class="search-input-wrapper">
+                                    <span class="material-symbols-outlined search-icon">search</span>
+                                    <input type="text" class="form-control form-search" id="topping-search-input" placeholder="Tìm kiếm topping..." oninput="handleToppingSearch(this.value)">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Toppings Table -->
+                    <div class="card content-card shadow-sm overflow-hidden">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 48px;">
+                                            <input type="checkbox" class="form-check-input" id="check-all-toppings" onclick="toggleSelectAllToppings(this)">
+                                        </th>
+                                        <th>Tên Topping</th>
+                                        <th>Giá bán</th>
+                                        <th>Trạng thái</th>
+                                        <th class="text-end" style="padding-right: 24px;">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="toppings-table-body">
+                                    <tr>
+                                        <td colspan="5" class="text-center py-5 text-muted">Đang tải topping...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW 5: STAFF MANAGEMENT -->
+                <div id="view-staff" class="admin-view-panel">
+                    <h2 class="view-title">Quản lý Nhân viên</h2>
+                    <p class="view-subtitle text-muted">Phân quyền tài khoản nhân viên POS, cấu hình mã PIN đăng nhập nhanh và tính lương cơ bản.</p>
+                    
+                    <div class="card content-card shadow-sm p-4 mt-4">
+                        <h5 class="fw-bold mb-4">Danh sách nhân sự cửa hàng</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Họ và tên</th>
+                                        <th>Vai trò</th>
+                                        <th>Số điện thoại</th>
+                                        <th>Email</th>
+                                        <th>Lương cơ bản</th>
+                                        <th>Trạng thái</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="staff-table-body">
+                                    <!-- Seeded staff loaded dynamically -->
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4 text-muted">Đang tải danh sách nhân viên...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW 6: VOUCHERS & PROMOTIONS -->
+                <div id="view-vouchers" class="admin-view-panel">
+                    <h2 class="view-title">Vouchers & Khuyến mãi</h2>
+                    <p class="view-subtitle text-muted">Cấu hình mã giảm giá (Voucher), chương trình chiết khấu và sự kiện ưu đãi khách hàng thành viên.</p>
+                    
+                    <div class="card content-card shadow-sm p-4 mt-4">
+                        <h5 class="fw-bold mb-4">Danh sách mã Voucher hiện hành</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Mã Voucher</th>
+                                        <th>Loại giảm giá</th>
+                                        <th>Giá trị</th>
+                                        <th>Giá trị đơn tối thiểu</th>
+                                        <th>Thời hạn</th>
+                                        <th>Trạng thái</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="vouchers-table-body">
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4 text-muted">Đang tải mã giảm giá...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW 7: INVENTORY MANAGEMENT -->
+                <div id="view-inventory" class="admin-view-panel">
+                    <h2 class="view-title">Kho nguyên liệu</h2>
+                    <p class="view-subtitle text-muted">Quản lý định lượng nguyên liệu thô, cảnh báo hết hạn, và kiểm kho 2 bước (Staff check, Manager approve).</p>
+                    
+                    <div class="card content-card shadow-sm p-4 mt-4">
+                        <h5 class="fw-bold mb-4">Tồn kho nguyên liệu hiện tại</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Tên nguyên liệu</th>
+                                        <th>Tồn hiện tại</th>
+                                        <th>Ngưỡng cảnh báo</th>
+                                        <th>Đơn vị tính</th>
+                                        <th>Hạn sử dụng</th>
+                                        <th>Trạng thái kho</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inventory-table-body">
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4 text-muted">Đang tải danh mục kho...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW 8: SHIFT MANAGEMENT -->
+                <div id="view-shifts" class="admin-view-panel">
+                    <h2 class="view-title">Quản lý Ca làm việc</h2>
+                    <p class="view-subtitle text-muted">Lịch sử bắt đầu/kết thúc ca, dòng tiền bàn giao thực tế của Thu ngân và duyệt báo cáo ca.</p>
+                    <div class="card content-card p-5 text-center mt-4">
+                        <div class="display-1 text-muted">⏰</div>
+                        <h4 class="fw-bold mt-3">Lịch sử ca làm việc</h4>
+                        <p class="text-muted">Các hoạt động mở/đóng ca của nhân viên được theo dõi tự động dựa theo thời gian thực tại thiết bị POS.</p>
+                        <div class="mt-4">
+                            <button class="btn btn-outline-success px-4" onclick="alert('Dữ liệu ca làm việc trống.')">Xem chi tiết báo cáo ca</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW 9: REPORTS -->
+                <div id="view-reports" class="admin-view-panel">
+                    <h2 class="view-title">Báo cáo doanh thu chi tiết</h2>
+                    <p class="view-subtitle text-muted">Xuất báo cáo tài chính chi tiết dạng bảng biểu và xuất file Excel.</p>
+                    <div class="card content-card p-5 text-center mt-4">
+                        <div class="display-1 text-muted">📊</div>
+                        <h4 class="fw-bold mt-3">Trung tâm báo cáo</h4>
+                        <p class="text-muted">Tính năng xuất báo cáo bán hàng chi tiết theo giờ, theo món bán chạy nhất và báo cáo lợi nhuận đang được nâng cấp.</p>
+                    </div>
+                </div>
+
+                <!-- VIEW 10: SETTINGS -->
+                <div id="view-settings" class="admin-view-panel">
+                    <h2 class="view-title">Cài đặt hệ thống</h2>
+                    <p class="view-subtitle text-muted">Thiết lập cấu hình thuế VAT, tích điểm thành viên (loyalty points), và thông tin hóa đơn in nhiệt.</p>
+                    <div class="card content-card p-4 mt-4" style="max-width: 600px;">
+                        <h5 class="fw-bold mb-4">Cấu hình chung</h5>
+                        <form onsubmit="event.preventDefault(); alert('Cập nhật cấu hình thành công!');">
+                            <div class="mb-3">
+                                <label class="form-label">Tên cửa hàng</label>
+                                <input type="text" class="form-control" value="CafePOS Main Store" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Thuế VAT áp dụng (%)</label>
+                                <input type="number" class="form-control" value="8" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Tỉ lệ quy đổi điểm loyalty (VND = 1 điểm)</label>
+                                <input type="number" class="form-control" value="20000" />
+                            </div>
+                            <button type="submit" class="btn btn-success mt-2">Lưu cấu hình</button>
+                        </form>
+                    </div>
+                </div>
+                
+            </div>
+        </main>
+    </div>
+
+    <!-- CATEGORY DIALOG MODAL (Create/Edit Category) -->
+    <div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow border-0" style="border-radius: 16px;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="categoryModalLabel">Thêm danh mục mới</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <form id="categoryForm">
+                        <input type="hidden" id="category-id-input" value="" />
+                        
+                        <!-- Name input -->
+                        <div class="mb-3">
+                            <label for="category-name-input" class="form-label small text-muted fw-bold">Tên danh mục <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control rounded-3 py-2" id="category-name-input" placeholder="Ví dụ: Cà phê Pha máy" required />
+                        </div>
+                        
+                        <!-- Station selector -->
+                        <div class="mb-3">
+                            <label for="category-station-input" class="form-label small text-muted fw-bold">Trạm pha chế hiển thị</label>
+                            <select class="form-select rounded-3 py-2" id="category-station-input">
+                                <option value="Bar">Quầy Bar (Đồ uống)</option>
+                                <option value="Pastry">Tủ Bánh (Đồ ăn/Bánh)</option>
+                                <option value="Both">Cả hai trạm</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Status toggle -->
+                        <div class="mb-3">
+                            <label class="form-label small text-muted fw-bold d-block">Trạng thái hoạt động</label>
+                            <div class="form-check form-switch mt-1">
+                                <input class="form-check-input" type="checkbox" id="category-active-input" checked>
+                                <label class="form-check-label small" for="category-active-input" id="category-active-label">Hoạt động</label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light px-4 py-2" data-bs-dismiss="modal" style="border-radius: 10px;">Hủy</button>
+                    <button type="button" class="btn btn-success px-4 py-2" id="btn-save-category" onclick="submitCategoryForm()" style="border-radius: 10px; background: #35571b;">Lưu thay thế</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- PRODUCT DIALOG MODAL (Create/Edit Product) -->
+    <div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content shadow border-0" style="border-radius: 16px;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="productModalLabel">Thêm sản phẩm mới</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <form id="productForm">
+                        <input type="hidden" id="product-id-input" value="" />
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="product-name-input" class="form-label small text-muted fw-bold">Tên sản phẩm <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control rounded-3 py-2" id="product-name-input" placeholder="Ví dụ: Hồng Trà Sữa" required />
+                                </div>
+                                <div class="mb-3">
+                                    <label for="product-category-input" class="form-label small text-muted fw-bold">Danh mục <span class="text-danger">*</span></label>
+                                    <select class="form-select rounded-3 py-2" id="product-category-input" required>
+                                        <!-- Dynamically loaded -->
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="product-price-input" class="form-label small text-muted fw-bold">Giá bán cơ sở (đ) <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control rounded-3 py-2" id="product-price-input" placeholder="Ví dụ: 35000" required />
+                                </div>
+                                <div class="mb-3">
+                                    <label for="product-desc-input" class="form-label small text-muted fw-bold">Mô tả sản phẩm</label>
+                                    <textarea class="form-control rounded-3 py-2" id="product-desc-input" rows="3" placeholder="Mô tả tóm tắt về hương vị, thành phần..."></textarea>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label small text-muted fw-bold">Ảnh sản phẩm</label>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <img id="product-img-preview" src="https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=100&auto=format&fit=crop&q=60" alt="Preview" class="rounded border" style="width: 80px; height: 80px; object-fit: cover;" />
+                                        <div>
+                                            <input type="file" class="form-control form-control-sm rounded-3 mb-2" id="product-img-file" accept="image/*" onchange="uploadProductImage(this)">
+                                            <input type="hidden" id="product-img-url" value="" />
+                                            <small class="text-muted d-block" style="font-size: 0.72rem;">Hỗ trợ định dạng JPG, PNG kích thước tối đa 2MB.</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="product-status-input" class="form-label small text-muted fw-bold">Trạng thái kho</label>
+                                    <select class="form-select rounded-3 py-2" id="product-status-input">
+                                        <option value="Active">Hoạt động (Đang bán)</option>
+                                        <option value="OutOfStock">Tạm ngưng (Hết hàng)</option>
+                                        <option value="Inactive">Ngừng kinh doanh</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3 p-3 bg-light rounded-3">
+                                    <label class="form-label small text-muted fw-bold d-block mb-2">Tùy chọn Order</label>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" id="product-sugar-input" checked>
+                                        <label class="form-check-label small" for="product-sugar-input">Có tùy chọn Đường</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" id="product-ice-input" checked>
+                                        <label class="form-check-label small" for="product-ice-input">Có tùy chọn Đá</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" id="product-size-input" onchange="toggleSizeFields(this.checked)">
+                                        <label class="form-check-label small" for="product-size-input">Có tùy chọn Size (S/M/L)</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Size list options -->
+                        <div id="size-options-panel" class="mb-3 p-3 bg-light rounded-3" style="display: none;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label small text-muted fw-bold mb-0">Cấu hình giá theo Size</label>
+                                <button type="button" class="btn btn-sm btn-outline-success px-2 py-0" onclick="addProductSizeRow()">+ Thêm Size</button>
+                            </div>
+                            <div id="size-rows-container">
+                                <!-- Size input rows (dynamically added) -->
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light px-4 py-2" data-bs-dismiss="modal" style="border-radius: 10px;">Hủy</button>
+                    <button type="button" class="btn btn-success px-4 py-2" id="btn-save-product" onclick="submitProductForm()" style="border-radius: 10px; background: #35571b;">Lưu sản phẩm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOPPING DIALOG MODAL (Create/Edit Topping) -->
+    <div class="modal fade" id="toppingModal" tabindex="-1" aria-labelledby="toppingModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow border-0" style="border-radius: 16px;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="toppingModalLabel">Thêm topping mới</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <form id="toppingForm">
+                        <input type="hidden" id="topping-id-input" value="" />
+                        
+                        <!-- Name input -->
+                        <div class="mb-3">
+                            <label for="topping-name-input" class="form-label small text-muted fw-bold">Tên topping <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control rounded-3 py-2" id="topping-name-input" placeholder="Ví dụ: Trân châu đường đen" required />
+                        </div>
+                        
+                        <!-- Price input -->
+                        <div class="mb-3">
+                            <label for="topping-price-input" class="form-label small text-muted fw-bold">Giá bán đi kèm (đ) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control rounded-3 py-2" id="topping-price-input" placeholder="Ví dụ: 5000" required />
+                        </div>
+                        
+                        <!-- Status toggle -->
+                        <div class="mb-3">
+                            <label class="form-label small text-muted fw-bold d-block">Trạng thái hoạt động</label>
+                            <div class="form-check form-switch mt-1">
+                                <input class="form-check-input" type="checkbox" id="topping-active-input" checked>
+                                <label class="form-check-label small" for="topping-active-input" id="topping-active-label">Hoạt động</label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light px-4 py-2" data-bs-dismiss="modal" style="border-radius: 10px;">Hủy</button>
+                    <button type="button" class="btn btn-success px-4 py-2" id="btn-save-topping" onclick="submitToppingForm()" style="border-radius: 10px; background: #35571b;">Lưu topping</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Help / Info Modal -->
+    <div class="modal fade" id="helpModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow border-0" style="border-radius: 16px;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Thông tin Dự án</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <h6 class="fw-bold">CafePOS & PDS - Quản trị Cửa hàng</h6>
+                    <p class="text-muted small">Phiên bản 1.0 (Sprint 0 - Hoàn thiện Module chính).</p>
+                    <p class="text-muted small">Hệ thống áp dụng kiến trúc Clean Architecture cùng kết nối API thời gian thực thông suốt. Phân quyền chặt chẽ giữa Owner, Shift Leader và các vị trí khác.</p>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-success px-4" data-bs-dismiss="modal" style="border-radius: 10px; background: #35571b;">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle JS -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Dashboard Business Logic -->
+    <script src="~/js/Admin/Index.js" asp-append-version="true"></script>
+</body>
+</html>

@@ -1,0 +1,342 @@
+@{
+    ViewData["Title"] = "Đăng nhập POS - CafePOS";
+    Layout = null; // Independent customized design
+}
+
+<!DOCTYPE html>
+<html lang="vi" class="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - CafePOS</title>
+    <!-- Nunito Sans Font & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+    <!-- Tailwind CSS CDN with forms/container plugins -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-dim": "#dcdad6",
+                      "primary-container": "#4c7031",
+                      "surface-bright": "#fcf9f5",
+                      "on-secondary": "#ffffff",
+                      "on-secondary-container": "#795d4e",
+                      "tertiary-fixed-dim": "#e5c099",
+                      "on-tertiary": "#ffffff",
+                      "tertiary": "#64492b",
+                      "on-tertiary-container": "#ffe0c2",
+                      "tertiary-fixed": "#ffddbb",
+                      "secondary-container": "#fed8c5",
+                      "on-error-container": "#93000a",
+                      "on-primary-fixed": "#0b2000",
+                      "error-container": "#ffdad6",
+                      "on-error": "#ffffff",
+                      "secondary-fixed-dim": "#e3bfad",
+                      "on-surface": "#1c1c1a",
+                      "surface-tint": "#44682a",
+                      "on-primary-container": "#c7f2a4",
+                      "inverse-on-surface": "#f3f0ec",
+                      "surface-container-highest": "#e5e2de",
+                      "on-background": "#1c1c1a",
+                      "background": "#fcf9f5",
+                      "on-primary": "#ffffff",
+                      "surface-container": "#f0ede9",
+                      "on-primary-fixed-variant": "#2d4f14",
+                      "tertiary-container": "#7e6141",
+                      "surface-container-high": "#eae8e4",
+                      "on-secondary-fixed": "#2a170c",
+                      "primary-fixed-dim": "#a9d388",
+                      "surface-variant": "#e5e2de",
+                      "surface-container-low": "#f6f3ef",
+                      "surface": "#fcf9f5",
+                      "secondary-fixed": "#ffdbca",
+                      "on-secondary-fixed-variant": "#5a4134",
+                      "outline-variant": "#c3c9b9",
+                      "secondary": "#74584a",
+                      "on-surface-variant": "#43493d",
+                      "error": "#ba1a1a",
+                      "on-tertiary-fixed": "#2b1701",
+                      "on-tertiary-fixed-variant": "#5c4224",
+                      "surface-container-lowest": "#ffffff",
+                      "primary-fixed": "#c5efa2",
+                      "inverse-primary": "#a9d388",
+                      "primary": "#35571b",
+                      "outline": "#73796c",
+                      "inverse-surface": "#31302e",
+                      // Custom semantic colors
+                      "espresso-dark": "#2c1b18",
+                      "milk-bg": "#fdfaf6",
+                      "cream-bg": "#f4eae1",
+                      "beige-accent": "#ddb892",
+                      "matcha-primary": "#4c7031"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px",
+                      "2xl": "1.5rem"
+              },
+              "spacing": {
+                      "base": "4px",
+                      "xs": "4px",
+                      "sm": "8px",
+                      "gutter": "16px",
+                      "margin-mobile": "16px",
+                      "2xl": "64px",
+                      "lg": "24px",
+                      "margin-desktop": "32px",
+                      "xl": "40px",
+                      "md": "16px"
+              },
+              "fontFamily": {
+                      "headline-lg-mobile": ["Nunito Sans"],
+                      "body-lg": ["Nunito Sans"],
+                      "label-sm": ["Nunito Sans"],
+                      "title-lg": ["Nunito Sans"],
+                      "label-md": ["Nunito Sans"],
+                      "headline-md": ["Nunito Sans"],
+                      "display-lg": ["Nunito Sans"],
+                      "headline-lg": ["Nunito Sans"],
+                      "body-md": ["Nunito Sans"]
+              },
+              "fontSize": {
+                      "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                      "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                      "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "700" }],
+                      "title-lg": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                      "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                      "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                      "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                      "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }],
+                      "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+              },
+              "boxShadow": {
+                  "coffee": "0px 4px 12px rgba(44, 27, 24, 0.08)"
+              }
+            },
+          }
+        }
+    </script>
+    <style>
+        html, body {
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            font-family: 'Nunito Sans', sans-serif;
+            background-color: #fdfaf6;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between items-center px-4 py-6 antialiased relative overflow-y-auto selection:bg-primary-container selection:text-on-primary-container">
+    
+    <!-- Ambient Background Light Decorations -->
+    <div class="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        <div class="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-secondary-container/15 blur-[100px]"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-primary-fixed/15 blur-[100px]"></div>
+    </div>
+
+    <!-- Main Container Wrapper -->
+    <div class="flex-grow flex items-center justify-center w-full my-8 relative z-10">
+        <main class="w-full max-w-[450px] px-2">
+        <!-- Wrapper Card -->
+        <div class="bg-surface-container-lowest rounded-2xl shadow-coffee p-6 md:p-10 border border-outline-variant/30 flex flex-col gap-6 relative overflow-hidden">
+            
+            <!-- Global Overlay for Statuses -->
+            <div id="successOverlay" class="absolute inset-0 bg-[#fdfaf6]/95 z-50 flex flex-col items-center justify-center gap-4 opacity-0 pointer-events-none transition-all duration-300 rounded-2xl">
+                <div id="successSpinner" class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                <div id="successCheck" class="hidden w-16 h-16 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center text-primary animate-bounce">
+                    <span class="font-bold text-headline-lg flex items-center justify-center">✓</span>
+                </div>
+                <div id="successTitle" class="font-headline-md text-headline-md text-espresso-dark">Đang xác thực...</div>
+            </div>
+
+            <!-- Header Section -->
+            <header class="flex flex-col items-center text-center gap-2">
+                <h1 class="font-display-lg text-display-lg text-primary tracking-tight">CafePOS & PDS</h1>
+                <p class="font-body-md text-body-md text-on-surface-variant">Cổng đăng nhập máy POS nhân viên</p>
+            </header>
+
+            <!-- Custom Alert (Errors) -->
+            <div id="errorAlert" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm animate-bounce" role="alert"></div>
+
+            <!-- POS Login Panel -->
+            <div id="panelPos" class="flex flex-col gap-4">
+                <div class="relative">
+                    <input type="password" class="w-full bg-cream-bg border border-transparent focus:border-transparent focus:ring-0 rounded-xl py-3.5 text-center font-extrabold text-3xl text-espresso-dark placeholder-outline-variant/40 transition-colors outline-none tracking-[12px] h-[60px]" id="posCodeInput" readonly placeholder="••••••" maxlength="6" />
+                </div>
+
+                <div class="grid grid-cols-3 gap-3.5 mt-2">
+                    <button type="button" class="bg-surface-container-low hover:bg-surface-container-high active:bg-primary-container active:text-on-primary-container border border-outline-variant/20 text-espresso-dark font-bold text-xl py-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center outline-none cursor-pointer" onclick="pressKey('1')">1</button>
+                    <button type="button" class="bg-surface-container-low hover:bg-surface-container-high active:bg-primary-container active:text-on-primary-container border border-outline-variant/20 text-espresso-dark font-bold text-xl py-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center outline-none cursor-pointer" onclick="pressKey('2')">2</button>
+                    <button type="button" class="bg-surface-container-low hover:bg-surface-container-high active:bg-primary-container active:text-on-primary-container border border-outline-variant/20 text-espresso-dark font-bold text-xl py-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center outline-none cursor-pointer" onclick="pressKey('3')">3</button>
+                    <button type="button" class="bg-surface-container-low hover:bg-surface-container-high active:bg-primary-container active:text-on-primary-container border border-outline-variant/20 text-espresso-dark font-bold text-xl py-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center outline-none cursor-pointer" onclick="pressKey('4')">4</button>
+                    <button type="button" class="bg-surface-container-low hover:bg-surface-container-high active:bg-primary-container active:text-on-primary-container border border-outline-variant/20 text-espresso-dark font-bold text-xl py-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center outline-none cursor-pointer" onclick="pressKey('5')">5</button>
+                    <button type="button" class="bg-surface-container-low hover:bg-surface-container-high active:bg-primary-container active:text-on-primary-container border border-outline-variant/20 text-espresso-dark font-bold text-xl py-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center outline-none cursor-pointer" onclick="pressKey('6')">6</button>
+                    <button type="button" class="bg-surface-container-low hover:bg-surface-container-high active:bg-primary-container active:text-on-primary-container border border-outline-variant/20 text-espresso-dark font-bold text-xl py-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center outline-none cursor-pointer" onclick="pressKey('7')">7</button>
+                    <button type="button" class="bg-surface-container-low hover:bg-surface-container-high active:bg-primary-container active:text-on-primary-container border border-outline-variant/20 text-espresso-dark font-bold text-xl py-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center outline-none cursor-pointer" onclick="pressKey('8')">8</button>
+                    <button type="button" class="bg-surface-container-low hover:bg-surface-container-high active:bg-primary-container active:text-on-primary-container border border-outline-variant/20 text-espresso-dark font-bold text-xl py-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center outline-none cursor-pointer" onclick="pressKey('9')">9</button>
+                    <button type="button" class="bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300 font-bold text-xl py-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center outline-none cursor-pointer" onclick="clearKeys()">C</button>
+                    <button type="button" class="bg-surface-container-low hover:bg-surface-container-high active:bg-primary-container active:text-on-primary-container border border-outline-variant/20 text-espresso-dark font-bold text-xl py-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center outline-none cursor-pointer" onclick="pressKey('0')">0</button>
+                    <button type="button" class="bg-matcha-primary hover:bg-primary text-on-primary font-bold text-lg py-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center outline-none cursor-pointer shadow-sm" onclick="submitPosLogin()">OK</button>
+                </div>
+
+                <div class="text-[12px] text-on-surface-variant/80 text-center leading-relaxed mt-2 bg-cream-bg/40 p-3.5 rounded-xl border border-outline-variant/20">
+                    Mã mẫu chạy thử:<br/>
+                    Owner: <strong>111111</strong> | Trưởng ca: <strong>222222</strong> | Thu ngân: <strong>333333</strong><br/>
+                    Pha chế: <strong>444444</strong> | Bếp bánh: <strong>555555</strong>
+                </div>
+            </div>
+
+        </div>
+    </main>
+    </div>
+
+    <!-- Footer Copyright -->
+    <footer class="w-full text-center relative z-10 py-4 mt-auto">
+        <p class="font-label-sm text-label-sm text-outline-variant/80">© 2024 CafePOS. Tất cả quyền được bảo lưu.</p>
+    </footer>
+
+    <!-- Form JavaScript Logic -->
+    <script>
+        const API_URL = "http://localhost:5076/api/v1";
+
+        // Auto redirect if already logged in as POS
+        window.onload = function() {
+            const token = localStorage.getItem("token");
+            const staffStr = localStorage.getItem("staff");
+            const loginMode = localStorage.getItem("loginMode");
+            if (token && staffStr && loginMode === "POS") {
+                try {
+                    const staff = JSON.parse(staffStr);
+                    redirectByPosRole(staff.role);
+                } catch (e) {
+                    clearStorage();
+                }
+            }
+        };
+
+        function clearStorage() {
+            localStorage.removeItem("token");
+            localStorage.removeItem("staff");
+            localStorage.removeItem("loginMode");
+        }
+
+        // Keypad logic
+        let posCode = "";
+        const maxDigits = 6;
+
+        function pressKey(num) {
+            document.getElementById("errorAlert").style.display = "none";
+            if (posCode.length < maxDigits) {
+                posCode += num;
+                updatePosDisplay();
+            }
+        }
+
+        function clearKeys() {
+            posCode = "";
+            updatePosDisplay();
+        }
+
+        function updatePosDisplay() {
+            const input = document.getElementById("posCodeInput");
+            input.value = posCode;
+        }
+
+        // Error message helpers
+        function showError(msg) {
+            const errorAlert = document.getElementById("errorAlert");
+            errorAlert.innerText = msg;
+            errorAlert.style.display = "block";
+            errorAlert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Manage overlay displays
+        function showOverlay(title, loading = true, isSuccess = false) {
+            const overlay = document.getElementById("successOverlay");
+            const spinner = document.getElementById("successSpinner");
+            const check = document.getElementById("successCheck");
+            const titleEl = document.getElementById("successTitle");
+
+            titleEl.innerText = title;
+            overlay.classList.remove("opacity-0", "pointer-events-none");
+            overlay.classList.add("opacity-100");
+
+            if (loading) {
+                spinner.style.display = "block";
+                check.classList.add("hidden");
+            } else {
+                spinner.style.display = "none";
+                if (isSuccess) {
+                    check.classList.remove("hidden");
+                }
+            }
+        }
+
+        function hideOverlay() {
+            const overlay = document.getElementById("successOverlay");
+            overlay.classList.remove("opacity-100");
+            overlay.classList.add("opacity-0", "pointer-events-none");
+        }
+
+        // Submit POS login (quick code verify)
+        async function submitPosLogin() {
+            if (posCode.length === 0) {
+                showError("Vui lòng nhập mã khóa POS.");
+                return;
+            }
+
+            showOverlay("Đang xác thực mã POS...");
+
+            try {
+                const response = await fetch(`${API_URL}/auth/pos/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ posCode: posCode })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    const data = result.data;
+                    localStorage.setItem("token", data.token);
+                    localStorage.setItem("staff", JSON.stringify(data.staff));
+                    localStorage.setItem("loginMode", "POS");
+
+                    showOverlay("Đăng nhập POS thành công!", false, true);
+                    
+                    setTimeout(() => {
+                        redirectByPosRole(data.staff.role);
+                    }, 1000);
+                } else {
+                    hideOverlay();
+                    showError(result.message || "Xác thực mã khóa thất bại.");
+                    clearKeys();
+                }
+            } catch (err) {
+                hideOverlay();
+                showError("Không thể kết nối đến máy chủ API.");
+                console.error(err);
+            }
+        }
+
+        // Redirection based on role for POS logins (Always routes to worker screens: POS / PDS)
+        function redirectByPosRole(role) {
+            if (role === "Owner" || role === "ShiftLeader" || role === "Cashier") {
+                window.location.href = "/POS";
+            } else if (role === "Barista") {
+                window.location.href = "/PDS?station=Bar";
+            } else if (role === "PastryStaff") {
+                window.location.href = "/PDS?station=Pastry";
+            } else {
+                showError("Tài khoản của bạn không có quyền truy cập hệ thống bán hàng.");
+                clearStorage();
+            }
+        }
+    </script>
+</body>
+</html>

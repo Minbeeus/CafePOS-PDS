@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - CafePOS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/CafePOS.Web.styles.css" asp-append-version="true" />
+    
+    <script>
+        // Client-side authentication guard running immediately to prevent content flashing
+        (function () {
+            const path = window.location.pathname.toLowerCase();
+            // Skip check for login page or public home/privacy page
+            if (path === '/' || path === '/privacy' || path === '/login' || path === '/customer/login' || path === '/pos/login' || path === '/admin/login' || path.startsWith('/error')) {
+                return;
+            }
+
+            const token = localStorage.getItem("token");
+            const loginMode = localStorage.getItem("loginMode");
+
+            if (path.startsWith('/customer')) {
+                const customerStr = localStorage.getItem("customer");
+                if (!token || !customerStr || loginMode !== "Customer") {
+                    window.location.href = '/Customer/Login';
+                    return;
+                }
+            } else {
+                const staffStr = localStorage.getItem("staff");
+                if (!token || !staffStr || (loginMode !== 'Admin' && loginMode !== 'POS')) {
+                    if (path.startsWith('/admin')) {
+                        window.location.href = '/Admin/Login';
+                    } else {
+                        window.location.href = '/POS/Login';
+                    }
+                    return;
+                }
+
+                try {
+                    const staff = JSON.parse(staffStr);
+                    const role = staff.role;
+
+                    // Check page authorization
+                    if (path.startsWith('/admin')) {
+                        if (loginMode !== 'Admin') {
+                            alert('Bạn phải đăng nhập bằng cổng Quản trị viên (Email & Mật khẩu) để truy cập trang này.');
+                            window.location.href = '/Admin/Login';
+                            return;
+                        }
+                        if (role !== 'Owner' && role !== 'ShiftLeader') {
+                            alert('Bạn không có quyền truy cập trang quản trị!');
+                            window.location.href = '/Index';
+                            return;
+                        }
+                    } else if (path.startsWith('/pos')) {
+                        if (role !== 'Owner' && role !== 'ShiftLeader' && role !== 'Cashier') {
+                            alert('Bạn không có quyền truy cập POS!');
+                            window.location.href = '/Index';
+                            return;
+                        }
+                    } else if (path.startsWith('/pds')) {
+                        if (role !== 'Owner' && role !== 'ShiftLeader' && role !== 'Barista' && role !== 'PastryStaff') {
+                            alert('Bạn không có quyền truy cập PDS!');
+                            window.location.href = '/Index';
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    localStorage.removeItem("token");
+                    localStorage.removeItem("staff");
+                    localStorage.removeItem("loginMode");
+                    if (path.startsWith('/admin')) {
+                        window.location.href = '/Admin/Login';
+                    } else {
+                        window.location.href = '/POS/Login';
+                    }
+                }
+            }
+        })();
+    </script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    @await RenderSectionAsync("Styles", required: false)
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+        }
+        .navbar-custom {
+            background-color: #2c1b18; /* espresso-dark */
+        }
+        .dropdown-menu {
+            box-shadow: 0 8px 30px rgba(44, 27, 24, 0.12) !important;
+            border: 1px solid rgba(44, 27, 24, 0.05) !important;
+            transform-origin: top right;
+            animation: dropdownFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .dropdown-item {
+            border-radius: 8px;
+            color: #2c1b18;
+            transition: all 0.15s ease-in-out;
+            display: flex;
+            align-items: center;
+        }
+        .dropdown-item:hover {
+            background-color: #f4eae1; /* cream-bg */
+            color: #4c7031; /* matcha-primary */
+        }
+        .dropdown-item.text-danger:hover {
+            background-color: #ffdad6;
+            color: #ba1a1a !important;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        @@keyframes dropdownFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(-6px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark navbar-custom mb-3">
+            <div class="container">
+                <a class="navbar-brand fw-bold" asp-area="" asp-controller="Home" asp-action="Index">☕ CafePOS</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item">
+                            <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Trang chủ</a>
+                        </li>
+                        <li class="nav-item" id="navPosLink" style="display:none;">
+                            <a class="nav-link text-warning fw-semibold" asp-area="" asp-controller="POS" asp-action="Index">POS Bán Hàng</a>
+                        </li>
+                        <li class="nav-item" id="navPdsLink" style="display:none;">
+                            <a class="nav-link text-info fw-semibold" asp-area="" asp-controller="PDS" asp-action="Index">PDS Pha Chế</a>
+                        </li>
+                        <li class="nav-item" id="navAdminLink" style="display:none;">
+                            <a class="nav-link text-danger fw-semibold" asp-area="" asp-controller="Admin" asp-action="Index">Admin Dashboard</a>
+                        </li>
+                    </ul>
+                    <div class="dropdown ms-3" id="navUserInfo" style="display:none !important;">
+                        <button class="btn btn-link nav-link dropdown-toggle d-flex align-items-center gap-2 p-0 border-0 text-decoration-none" 
+                                type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div id="navAvatarCircle" class="d-flex align-items-center justify-content-center fw-bold text-white rounded-circle" 
+                                 style="width: 36px; height: 36px; background: #4c7031; font-size: 1.1rem; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">
+                                U
+                            </div>
+                            <span class="text-light d-none d-md-inline" id="navStaffName">User</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-2" aria-labelledby="userDropdown" style="border-radius: 12px; min-width: 220px; z-index: 1050;">
+                            <li class="px-3 py-2 bg-light rounded-3 mb-2">
+                                <div class="fw-bold text-dark text-truncate" id="dropdownUserName">User Name</div>
+                                <span class="badge mt-1" id="dropdownUserRole" style="font-size: 0.75rem;">Role</span>
+                            </li>
+                            <!-- Common Link -->
+                            <li>
+                                <a class="dropdown-item gap-2 py-2" asp-area="" asp-controller="Home" asp-action="Index">
+                                    <span class="material-symbols-outlined text-[18px]">home</span>
+                                    <span>Trang chủ</span>
+                                </a>
+                            </li>
+                            <!-- Customer Shortcuts -->
+                            <li class="cust-shortcut" style="display:none;">
+                                <a class="dropdown-item gap-2 py-2" asp-area="" asp-controller="Customer" asp-action="Index">
+                                    <span class="material-symbols-outlined text-[18px]">dashboard</span>
+                                    <span>Bảng điều khiển</span>
+                                </a>
+                            </li>
+                            
+                            <!-- Staff Shortcuts -->
+                            <li class="staff-shortcut" id="ddPosLink" style="display:none;">
+                                <a class="dropdown-item gap-2 py-2" asp-area="" asp-controller="POS" asp-action="Index">
+                                    <span class="material-symbols-outlined text-[18px]">point_of_sale</span>
+                                    <span>POS Bán Hàng</span>
+                                </a>
+                            </li>
+                            <li class="staff-shortcut" id="ddPdsLink" style="display:none;">
+                                <a class="dropdown-item gap-2 py-2" asp-area="" asp-controller="PDS" asp-action="Index">
+                                    <span class="material-symbols-outlined text-[18px]">local_cafe</span>
+                                    <span>PDS Pha Chế</span>
+                                </a>
+                            </li>
+                            <li class="staff-shortcut" id="ddAdminLink" style="display:none;">
+                                <a class="dropdown-item gap-2 py-2" asp-area="" asp-controller="Admin" asp-action="Index">
+                                    <span class="material-symbols-outlined text-[18px]">admin_panel_settings</span>
+                                    <span>Trang Quản Trị</span>
+                                </a>
+                            </li>
+                            
+                            <li><hr class="dropdown-divider my-2"></li>
+                            <li>
+                                <button class="dropdown-item gap-2 py-2 text-danger fw-semibold w-full text-start border-0 bg-transparent" id="dropdownLogoutBtn" onclick="logoutStaff()">
+                                    <span class="material-symbols-outlined text-[18px]">logout</span>
+                                    <span>Đăng xuất</span>
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="d-flex align-items-center ms-3" id="navLoginBtn">
+                        <a class="btn btn-outline-light btn-sm" asp-controller="POS" asp-action="Login">Đăng nhập</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2026 - CafePOS.Web - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    
+    <script>
+        // Update navbar on load
+        (function() {
+            const loginMode = localStorage.getItem("loginMode");
+            if (loginMode === "Customer") {
+                const customerStr = localStorage.getItem("customer");
+                if (customerStr) {
+                    try {
+                        const customer = JSON.parse(customerStr);
+                        document.getElementById("navUserInfo").style.setProperty("display", "block", "important");
+                        document.getElementById("navLoginBtn").style.setProperty("display", "none", "important");
+                        document.getElementById("navStaffName").innerText = customer.fullName;
+                        
+                        // Set Avatar circle content
+                        const firstChar = customer.fullName ? customer.fullName.trim().charAt(0).toUpperCase() : 'C';
+                        document.getElementById("navAvatarCircle").innerText = firstChar;
+                        document.getElementById("navAvatarCircle").style.background = "#4c7031"; // Matcha green for customers
+                        
+                        // Dropdown user info
+                        document.getElementById("dropdownUserName").innerText = customer.fullName;
+                        
+                        const tierName = customer.loyaltyTier === "None" ? "Khách hàng" : `Hạng ${customer.loyaltyTier}`;
+                        document.getElementById("dropdownUserRole").innerText = `${tierName} (${customer.currentPoints} Điểm)`;
+                        document.getElementById("dropdownUserRole").className = "badge bg-success mt-1";
+                        
+                        // Show/hide correct shortcuts
+                        document.querySelectorAll(".cust-shortcut").forEach(el => el.style.display = "block");
+                        document.querySelectorAll(".staff-shortcut").forEach(el => el.style.display = "none");
+                        
+                        const logoutBtn = document.getElementById("dropdownLogoutBtn");
+                        if (logoutBtn) {
+                            logoutBtn.setAttribute("onclick", "logoutCustomer()");
+                        }
+                    } catch (e) {}
+                }
+            } else {
+                const staffStr = localStorage.getItem("staff");
+                if (staffStr && loginMode) {
+                    try {
+                        const staff = JSON.parse(staffStr);
+                        document.getElementById("navUserInfo").style.setProperty("display", "block", "important");
+                        document.getElementById("navLoginBtn").style.setProperty("display", "none", "important");
+                        document.getElementById("navStaffName").innerText = staff.fullName;
+                        
+                        // Set Avatar circle content
+                        const firstChar = staff.fullName ? staff.fullName.trim().charAt(0).toUpperCase() : 'S';
+                        document.getElementById("navAvatarCircle").innerText = firstChar;
+                        document.getElementById("navAvatarCircle").style.background = "#64492b"; // Coffee brown for staff
+                        
+                        // Dropdown user info
+                        document.getElementById("dropdownUserName").innerText = staff.fullName;
+                        document.getElementById("dropdownUserRole").innerText = translateRole(staff.role);
+                        document.getElementById("dropdownUserRole").className = "badge bg-primary mt-1";
+                        
+                        // Show/hide correct shortcuts
+                        document.querySelectorAll(".cust-shortcut").forEach(el => el.style.display = "none");
+                        
+                        // Show relevant menus
+                        if (loginMode === 'Admin' && (staff.role === 'Owner' || staff.role === 'ShiftLeader')) {
+                            document.getElementById("navAdminLink").style.display = "block";
+                            document.getElementById("ddAdminLink").style.display = "block";
+                        }
+                        
+                        if (staff.role === 'Owner' || staff.role === 'ShiftLeader' || staff.role === 'Cashier') {
+                            document.getElementById("navPosLink").style.display = "block";
+                            document.getElementById("ddPosLink").style.display = "block";
+                        }
+                        if (staff.role === 'Owner' || staff.role === 'ShiftLeader' || staff.role === 'Barista' || staff.role === 'PastryStaff') {
+                            document.getElementById("navPdsLink").style.display = "block";
+                            document.getElementById("ddPdsLink").style.display = "block";
+                        }
+                        
+                        const logoutBtn = document.getElementById("dropdownLogoutBtn");
+                        if (logoutBtn) {
+                            logoutBtn.setAttribute("onclick", "logoutStaff()");
+                        }
+                    } catch (e) {}
+                }
+            }
+        })();
+
+        function translateRole(role) {
+            switch(role) {
+                case 'Owner': return 'Chủ cửa hàng';
+                case 'ShiftLeader': return 'Trưởng ca';
+                case 'Cashier': return 'Thu ngân';
+                case 'Barista': return 'Pha chế (Bar)';
+                case 'PastryStaff': return 'Quầy bánh';
+                default: return role;
+            }
+        }
+
+        function logoutStaff() {
+            const path = window.location.pathname.toLowerCase();
+            localStorage.removeItem("token");
+            localStorage.removeItem("staff");
+            localStorage.removeItem("loginMode");
+            if (path.startsWith('/admin')) {
+                window.location.href = '/Admin/Login';
+            } else {
+                window.location.href = '/POS/Login';
+            }
+        }
+
+        function logoutCustomer() {
+            localStorage.removeItem("token");
+            localStorage.removeItem("customer");
+            localStorage.removeItem("loginMode");
+            window.location.href = '/Customer/Login';
+        }
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
