@@ -1,0 +1,56 @@
+## Ignore Visual Studio / MSBuild temporary files and build output
+## Reference: https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# User-specific files (MonoDevelop/Xamarin Studio)
+*.userprefs
+
+# Mono auto-generated files
+mono_crash.*
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Release]/
+[Releases]/
+x64/
+x86/
+SDK/
+build/
+bin/
+obj/
+publish/
+
+# DSTC templates
+*.dtc
+
+# MSBuild File Manager
+*.dbmd
+
+# Rider
+.idea/
+
+# Visual Studio 2015/2017/2019/2022 cache directory
+.vs/
+
+# Visual Studio Code
+.vscode/
+
+# Local Config files
+appsettings.json
+appsettings.Development.json
+# (optional) If you want to keep appsettings but ignore secrets:
+# Keep appsettings.json in git, but ignore secret settings using user-secrets or environment variables
+
+# Temporary files
+*.tmp
+*.tmp_proj
+*.log
+*.apibuild
+*.apireview

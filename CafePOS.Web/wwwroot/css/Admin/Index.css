@@ -1,0 +1,7 @@
+/* Admin page specific styles */
+.admin-container {
+    padding: 20px;
+    background-color: var(--admin-bg);
+    color: var(--admin-text-dark);
+    border-radius: 8px;
+}

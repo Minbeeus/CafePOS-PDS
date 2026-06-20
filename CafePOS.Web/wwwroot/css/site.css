@@ -1,0 +1,70 @@
+:root {
+  /* --- Core Colors --- */
+  --color-white: #ffffff;
+
+  /* --- Focus State --- */
+  --focus-ring-outline: var(--color-white);
+  --focus-ring-color: #258cfb;
+
+  /* --- POS Theme (Dark Mode) --- */
+  --pos-bg: #0f172a;
+  --pos-accent: #f59e0b;
+  --pos-text: #f1f5f9;
+  --pos-border: #1e293b;
+  --pos-card-bg: #1e293b;
+  --pos-muted: #64748b;
+
+  /* --- PDS Theme & Status Coding --- */
+  --pds-bg: #0f172a;
+  --pds-text: #f1f5f9;
+  --status-pending: #fbbf24;
+  --status-inprogress: #3b82f6;
+  --status-done: #22c55e;
+
+  /* --- Customer Web Theme (Cream & Coffee Brown) --- */
+  --customer-bg: #fdfbf7;
+  --customer-primary: #5c3d2e;      /* Coffee Brown */
+  --customer-secondary: #865439;    /* Lighter Coffee Brown */
+  --customer-cream: #c6a9a3;        /* Creamy accent */
+  --customer-gold: #b7791f;         /* Gold Accent */
+  --customer-text: #2d2424;         /* Dark text */
+
+  /* --- Admin Theme (Modern Professional Dashboard) --- */
+  --admin-bg: #f8fafc;
+  --admin-sidebar-bg: #0f172a;
+  --admin-text-dark: #0f172a;
+  --admin-text-muted: #64748b;
+  --admin-primary: #4f46e5;         /* Indigo */
+}
+
+html {
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem var(--focus-ring-outline), 0 0 0 0.25rem var(--focus-ring-color);
+}
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+body {
+  margin-bottom: 60px;
+}
+
+.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
+  color: var(--bs-secondary-color);
+  text-align: end;
+}
+
+.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
+  text-align: start;
+}

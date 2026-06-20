@@ -1,0 +1,17 @@
+namespace CafePOS.Domain.Entities;
+
+public class Product
+{
+    public int Id { get; set; }
+    public int CategoryId { get; set; }
+    public Category? Category { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string ImageUrl { get; set; } = string.Empty;
+    public decimal BasePrice { get; set; }
+    public string Status { get; set; } = string.Empty; // Active, Inactive, OutOfStock
+    public bool HasSizeOption { get; set; }
+    public bool HasSugarOption { get; set; }
+    public bool HasIceOption { get; set; }
+    public DateTime CreatedAt { get; set; }
+}

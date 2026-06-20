@@ -1,0 +1,8 @@
+/* Customer page specific styles */
+.customer-container {
+    padding: 20px;
+    background-color: var(--customer-bg);
+    color: var(--customer-text);
+    border-radius: 8px;
+    border: 1px solid var(--customer-cream);
+}

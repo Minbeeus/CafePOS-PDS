@@ -1,0 +1,7 @@
+/* PDS page specific styles */
+.pds-container {
+    padding: 20px;
+    background-color: var(--pds-bg);
+    color: var(--pds-text);
+    border-radius: 8px;
+}

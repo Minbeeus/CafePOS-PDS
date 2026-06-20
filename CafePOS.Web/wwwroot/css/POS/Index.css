@@ -1,0 +1,8 @@
+/* POS page specific styles */
+.pos-container {
+    padding: 20px;
+    background-color: var(--pos-bg);
+    color: var(--pos-text);
+    border-radius: 8px;
+    border: 1px solid var(--pos-border);
+}
