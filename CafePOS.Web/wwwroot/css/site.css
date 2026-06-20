@@ -1,40 +1,55 @@
 :root {
-  /* --- Core Colors --- */
+  /* --- Brand Colors (Matcha & Espresso Cafe) --- */
+  --bg-milk: #fdfaf6;            /* Warm soft milk cream background */
+  --bg-cream: #f4eae1;           /* Cream beige background */
   --color-white: #ffffff;
+  
+  --coffee-dark: #2c1b18;        /* Espresso Dark Brown */
+  --coffee-medium: #4e3629;      /* Chestnut Brown */
+  --coffee-light: #7f5539;       /* Latte Milk Brown */
+  --coffee-beige: #ddb892;       /* Soft linen/sand */
+
+  --matcha-dark: #2d4a22;        /* Dark Forest Green */
+  --matcha-primary: #4c7031;     /* Matcha Green */
+  --matcha-light: #5c8f3d;       /* Fresh leaf green */
+  --matcha-bg: #e8f0e2;          /* Light matcha cream */
+
+  --text-dark: #2c1b18;          /* Coffee dark text */
+  --text-muted: #7f6a64;         /* Muted coffee brown text */
 
   /* --- Focus State --- */
   --focus-ring-outline: var(--color-white);
-  --focus-ring-color: #258cfb;
+  --focus-ring-color: var(--matcha-primary);
 
-  /* --- POS Theme (Dark Mode) --- */
-  --pos-bg: #0f172a;
-  --pos-accent: #f59e0b;
-  --pos-text: #f1f5f9;
-  --pos-border: #1e293b;
-  --pos-card-bg: #1e293b;
-  --pos-muted: #64748b;
+  /* --- POS Theme (Coffee House Style) --- */
+  --pos-bg: var(--coffee-dark);
+  --pos-accent: var(--matcha-primary);
+  --pos-text: var(--bg-milk);
+  --pos-border: #3d2521;
+  --pos-card-bg: #3d2521;
+  --pos-muted: #a68a80;
 
   /* --- PDS Theme & Status Coding --- */
-  --pds-bg: #0f172a;
-  --pds-text: #f1f5f9;
-  --status-pending: #fbbf24;
-  --status-inprogress: #3b82f6;
-  --status-done: #22c55e;
+  --pds-bg: var(--coffee-dark);
+  --pds-text: var(--bg-milk);
+  --status-pending: #dfa010;     /* Warm Caramel Gold */
+  --status-inprogress: #3d7fb5;  /* Soft Blue */
+  --status-done: var(--matcha-primary); /* Matcha Green */
 
   /* --- Customer Web Theme (Cream & Coffee Brown) --- */
-  --customer-bg: #fdfbf7;
-  --customer-primary: #5c3d2e;      /* Coffee Brown */
-  --customer-secondary: #865439;    /* Lighter Coffee Brown */
-  --customer-cream: #c6a9a3;        /* Creamy accent */
-  --customer-gold: #b7791f;         /* Gold Accent */
-  --customer-text: #2d2424;         /* Dark text */
+  --customer-bg: var(--bg-milk);
+  --customer-primary: var(--coffee-medium);
+  --customer-secondary: var(--coffee-light);
+  --customer-cream: var(--bg-cream);
+  --customer-gold: var(--matcha-primary);
+  --customer-text: var(--text-dark);
 
-  /* --- Admin Theme (Modern Professional Dashboard) --- */
-  --admin-bg: #f8fafc;
-  --admin-sidebar-bg: #0f172a;
-  --admin-text-dark: #0f172a;
-  --admin-text-muted: #64748b;
-  --admin-primary: #4f46e5;         /* Indigo */
+  /* --- Admin Theme (Matcha & Coffee Dashboard) --- */
+  --admin-bg: var(--bg-milk);
+  --admin-sidebar-bg: var(--coffee-dark);
+  --admin-text-dark: var(--text-dark);
+  --admin-text-muted: var(--text-muted);
+  --admin-primary: var(--matcha-primary);
 }
 
 html {
@@ -57,6 +72,8 @@ html {
 }
 
 body {
+  background-color: var(--bg-milk);
+  color: var(--text-dark);
   margin-bottom: 60px;
 }
 
@@ -67,4 +84,113 @@ body {
 
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
+}
+
+/* --- Brand Custom Layout Overrides --- */
+.navbar-custom {
+  background-color: var(--coffee-dark) !important;
+  border-bottom: 3px solid var(--matcha-primary) !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.navbar-custom .navbar-brand {
+  color: var(--bg-milk) !important;
+  font-weight: 700;
+}
+
+.navbar-custom .nav-link {
+  color: #dfd5cf !important;
+  transition: color 0.2s ease;
+}
+
+.navbar-custom .nav-link:hover {
+  color: var(--matcha-light) !important;
+}
+
+.navbar-custom .nav-link.active {
+  color: var(--color-white) !important;
+}
+
+.card-custom {
+  background-color: var(--color-white);
+  border: 1px solid rgba(78, 54, 41, 0.15) !important;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(44, 27, 24, 0.05);
+}
+
+.card-custom-dark {
+  background-color: var(--coffee-dark);
+  border: 1px solid var(--coffee-medium) !important;
+  border-radius: 16px;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.25);
+}
+
+.btn-matcha {
+  background: linear-gradient(135deg, var(--matcha-primary) 0%, var(--matcha-light) 100%);
+  color: var(--color-white) !important;
+  border: none;
+  font-weight: 600;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(76, 112, 49, 0.2);
+  transition: all 0.2s ease;
+}
+
+.btn-matcha:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(76, 112, 49, 0.3);
+  filter: brightness(1.1);
+}
+
+.btn-outline-matcha {
+  color: var(--matcha-primary) !important;
+  border: 2px solid var(--matcha-primary) !important;
+  background: transparent;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.btn-outline-matcha:hover {
+  background: var(--matcha-primary) !important;
+  color: var(--color-white) !important;
+  transform: translateY(-1px);
+}
+
+.btn-coffee {
+  background: linear-gradient(135deg, var(--coffee-medium) 0%, var(--coffee-light) 100%);
+  color: var(--color-white) !important;
+  border: none;
+  font-weight: 600;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(78, 54, 41, 0.2);
+  transition: all 0.2s ease;
+}
+
+.btn-coffee:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(78, 54, 41, 0.3);
+  filter: brightness(1.1);
+}
+
+.btn-outline-coffee {
+  color: var(--coffee-medium) !important;
+  border: 2px solid var(--coffee-medium) !important;
+  background: transparent;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.btn-outline-coffee:hover {
+  background: var(--coffee-medium) !important;
+  color: var(--color-white) !important;
+  transform: translateY(-1px);
+}
+
+.text-coffee-dark {
+  color: var(--coffee-dark) !important;
+}
+
+.text-matcha {
+  color: var(--matcha-primary) !important;
 }

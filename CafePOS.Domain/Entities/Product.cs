@@ -14,4 +14,5 @@ public class Product
     public bool HasSugarOption { get; set; }
     public bool HasIceOption { get; set; }
     public DateTime CreatedAt { get; set; }
+    public ICollection<ProductSize> Sizes { get; set; } = new List<ProductSize>();
 }

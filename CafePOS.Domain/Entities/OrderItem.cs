@@ -17,4 +17,5 @@ public class OrderItem
     public bool IsPointRedemption { get; set; }
     public string BarStatus { get; set; } = string.Empty; // NA, Pending, InProgress, Done
     public string PastryStatus { get; set; } = string.Empty; // NA, Pending, InProgress, Done
+    public ICollection<OrderItemTopping> Toppings { get; set; } = new List<OrderItemTopping>();
 }

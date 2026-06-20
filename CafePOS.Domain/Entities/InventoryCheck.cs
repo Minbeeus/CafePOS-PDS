@@ -13,4 +13,5 @@ public class InventoryCheck
     public Staff? ApprovedBy { get; set; }
     public DateTime? ApprovedAt { get; set; }
     public string Notes { get; set; } = string.Empty;
+    public ICollection<InventoryCheckItem> CheckItems { get; set; } = new List<InventoryCheckItem>();
 }

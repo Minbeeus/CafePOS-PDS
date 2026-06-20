@@ -8,9 +8,25 @@
     <link rel="stylesheet" href="~/css/Admin/Index.css" asp-append-version="true" />
 }
 
-<div class="admin-container">
-    <h1>Trang Quản trị hệ thống</h1>
-    <p>Trang dành cho Owner và Manager để xem báo cáo, quản lý thực đơn, tồn kho.</p>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card bg-dark text-light border-secondary shadow">
+                <div class="card-header bg-danger text-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">ADMIN DASHBOARD (QUẢN TRỊ)</h5>
+                    <span class="badge bg-light text-dark">Chỉ dành cho Quản lý</span>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">Xác thực quyền quản trị thành công!</h5>
+                    <p class="card-text text-muted">Chào mừng bạn đến với Cổng quản trị hệ thống CafePOS & PDS. Chỉ Owner và Shift Leader mới có quyền truy cập trang này.</p>
+                    
+                    <div class="mt-4 alert alert-info bg-dark text-info border-info">
+                        <p class="mb-0"><strong>Chức năng khả dụng ở Sprint sau:</strong> Quản lý nhân viên, cấu hình Menu, nhập kiểm kho, xem báo cáo doanh thu chi tiết.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {

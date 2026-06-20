@@ -1,3 +1,9 @@
+using System.Threading.Tasks;
+using CafePOS.Application.DTOs;
+using CafePOS.Application.Interfaces;
+using CafePOS.Application.Services;
+using CafePOS.Domain.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CafePOS.API.Controllers;
@@ -6,5 +12,123 @@ namespace CafePOS.API.Controllers;
 [Route("api/v1/[controller]")]
 public class AuthController : ControllerBase
 {
-    // Placeholders for Authentication Endpoints (staff login, pos login, customer register, customer login)
+    private readonly AuthService _authService;
+    private readonly IStaffRepository _staffRepository;
+
+    public AuthController(AuthService authService, IStaffRepository staffRepository)
+    {
+        _authService = authService;
+        _staffRepository = staffRepository;
+    }
+
+    [HttpPost("staff/login")]
+    [AllowAnonymous]
+    public async Task<IActionResult> StaffLogin([FromBody] StaffLoginRequest request)
+    {
+        var response = await _authService.LoginStaffAsync(request);
+        if (response == null)
+        {
+            return Unauthorized(new { success = false, message = "Tên đăng nhập hoặc mật khẩu không chính xác." });
+        }
+
+        return Ok(new { success = true, data = response, message = "Đăng nhập thành công" });
+    }
+
+    [HttpPost("pos/login")]
+    [AllowAnonymous]
+    public async Task<IActionResult> PosLogin([FromBody] PosLoginRequest request)
+    {
+        var response = await _authService.LoginPosAsync(request);
+        if (response == null)
+        {
+            return Unauthorized(new { success = false, message = "Mã POS không chính xác hoặc nhân viên đã bị khóa." });
+        }
+
+        return Ok(new { success = true, data = response, message = "Đăng nhập POS thành công" });
+    }
+
+    [HttpPost("staff/verify-code")]
+    [Authorize] // Requires cashier or staff authentication
+    public async Task<IActionResult> VerifyCode([FromBody] VerifyCodeRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.PosCode))
+        {
+            return BadRequest(new { success = false, message = "Mã POS không được trống." });
+        }
+
+        var staff = await _staffRepository.GetByPosCodeAsync(request.PosCode);
+        if (staff == null)
+        {
+            return Ok(new { success = true, data = new { isValid = false, message = "Mã xác thực không đúng." } });
+        }
+
+        // Check if the staff role matches the required role (Owner has bypass)
+        bool hasRequiredRole = staff.Role == StaffRole.Owner || staff.Role.ToString() == request.RequiredRole;
+        if (!hasRequiredRole)
+        {
+            return Ok(new { success = true, data = new { isValid = false, message = "Quyền hạn không đủ để xác nhận thao tác này." } });
+        }
+
+        return Ok(new {
+            success = true,
+            data = new {
+                isValid = true,
+                staffId = staff.Id,
+                staffName = staff.FullName,
+                role = staff.Role.ToString()
+            }
+        });
+    }
+
+    [HttpPost("customer/login")]
+    [AllowAnonymous]
+    public async Task<IActionResult> CustomerLogin([FromBody] CustomerLoginRequest request)
+    {
+        var response = await _authService.LoginCustomerAsync(request);
+        if (response == null)
+        {
+            return Unauthorized(new { success = false, message = "Số điện thoại hoặc mật khẩu không chính xác." });
+        }
+
+        return Ok(new { success = true, data = response, message = "Đăng nhập khách hàng thành công" });
+    }
+
+    [HttpPost("customer/register")]
+    [AllowAnonymous]
+    public async Task<IActionResult> CustomerRegister([FromBody] CustomerRegisterRequest request)
+    {
+        try
+        {
+            var response = await _authService.RegisterCustomerAsync(request);
+            if (response == null)
+            {
+                return BadRequest(new { success = false, message = "Không thể đăng ký tài khoản. Vui lòng kiểm tra lại thông tin." });
+            }
+
+            return Ok(new { success = true, data = response, message = "Đăng ký tài khoản thành công" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
+
+    [HttpPost("customer/google-login")]
+    [AllowAnonymous]
+    public async Task<IActionResult> CustomerGoogleLogin([FromBody] GoogleLoginRequest request)
+    {
+        var response = await _authService.LoginWithGoogleAsync(request);
+        if (response == null)
+        {
+            return Unauthorized(new { success = false, message = "Xác thực tài khoản Google không thành công." });
+        }
+
+        return Ok(new { success = true, data = response, message = "Đăng nhập Google thành công" });
+    }
+}
+
+public class VerifyCodeRequest
+{
+    public string PosCode { get; set; } = string.Empty;
+    public string RequiredRole { get; set; } = string.Empty;
 }

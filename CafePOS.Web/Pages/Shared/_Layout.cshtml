@@ -1,20 +1,90 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - CafePOS.Web</title>
-    <script type="importmap"></script>
+    <title>@ViewData["Title"] - CafePOS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/CafePOS.Web.styles.css" asp-append-version="true" />
+    
+    <script>
+        // Client-side authentication guard running immediately to prevent content flashing
+        (function () {
+            const path = window.location.pathname.toLowerCase();
+            // Skip check for login page or public home/privacy page
+            if (path === '/' || path === '/privacy' || path === '/login' || path === '/customer/login' || path.startsWith('/error')) {
+                return;
+            }
+
+            const token = localStorage.getItem("token");
+            const loginMode = localStorage.getItem("loginMode");
+
+            if (path.startsWith('/customer')) {
+                const customerStr = localStorage.getItem("customer");
+                if (!token || !customerStr || loginMode !== "Customer") {
+                    window.location.href = '/Customer/Login';
+                    return;
+                }
+            } else {
+                const staffStr = localStorage.getItem("staff");
+                if (!token || !staffStr || (loginMode !== 'Admin' && loginMode !== 'POS')) {
+                    window.location.href = '/Login';
+                    return;
+                }
+
+                try {
+                    const staff = JSON.parse(staffStr);
+                    const role = staff.role;
+
+                    // Check page authorization
+                    if (path.startsWith('/admin')) {
+                        if (loginMode !== 'Admin') {
+                            alert('Bạn phải đăng nhập bằng cổng Quản trị viên (Email & Mật khẩu) để truy cập trang này.');
+                            window.location.href = '/Login';
+                            return;
+                        }
+                        if (role !== 'Owner' && role !== 'ShiftLeader') {
+                            alert('Bạn không có quyền truy cập trang quản trị!');
+                            window.location.href = '/Index';
+                            return;
+                        }
+                    } else if (path.startsWith('/pos')) {
+                        if (role !== 'Owner' && role !== 'ShiftLeader' && role !== 'Cashier') {
+                            alert('Bạn không có quyền truy cập POS!');
+                            window.location.href = '/Index';
+                            return;
+                        }
+                    } else if (path.startsWith('/pds')) {
+                        if (role !== 'Owner' && role !== 'ShiftLeader' && role !== 'Barista' && role !== 'PastryStaff') {
+                            alert('Bạn không có quyền truy cập PDS!');
+                            window.location.href = '/Index';
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    localStorage.removeItem("token");
+                    localStorage.removeItem("staff");
+                    localStorage.removeItem("loginMode");
+                    window.location.href = '/Login';
+                }
+            }
+        })();
+    </script>
+    
     @await RenderSectionAsync("Styles", required: false)
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+        }
+    </style>
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark navbar-custom mb-3">
             <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">CafePOS.Web</a>
+                <a class="navbar-brand fw-bold" asp-area="" asp-page="/Index">☕ CafePOS</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -22,12 +92,26 @@
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
+                            <a class="nav-link" asp-area="" asp-page="/Index">Trang chủ</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
+                        <li class="nav-item" id="navPosLink" style="display:none;">
+                            <a class="nav-link text-warning fw-semibold" asp-area="" asp-page="/POS/Index">POS Bán Hàng</a>
+                        </li>
+                        <li class="nav-item" id="navPdsLink" style="display:none;">
+                            <a class="nav-link text-info fw-semibold" asp-area="" asp-page="/PDS/Index">PDS Pha Chế</a>
+                        </li>
+                        <li class="nav-item" id="navAdminLink" style="display:none;">
+                            <a class="nav-link text-danger fw-semibold" asp-area="" asp-page="/Admin/Index">Admin Dashboard</a>
                         </li>
                     </ul>
+                    <div class="d-flex align-items-center" id="navUserInfo" style="display:none !important;">
+                        <span class="text-light me-3" id="navStaffName">Nhân viên</span>
+                        <span class="badge bg-primary me-3" id="navStaffRole">Role</span>
+                        <button class="btn btn-outline-danger btn-sm" onclick="logoutStaff()">Đăng xuất</button>
+                    </div>
+                    <div class="d-flex align-items-center" id="navLoginBtn">
+                        <a class="btn btn-outline-light btn-sm" asp-page="/Login">Đăng nhập</a>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -47,6 +131,81 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    
+    <script>
+        // Update navbar on load
+        (function() {
+            const loginMode = localStorage.getItem("loginMode");
+            if (loginMode === "Customer") {
+                const customerStr = localStorage.getItem("customer");
+                if (customerStr) {
+                    try {
+                        const customer = JSON.parse(customerStr);
+                        document.getElementById("navUserInfo").style.setProperty("display", "flex", "important");
+                        document.getElementById("navLoginBtn").style.display = "none";
+                        document.getElementById("navStaffName").innerText = customer.fullName;
+                        
+                        const tierName = customer.loyaltyTier === "None" ? "Khách hàng" : `Hạng ${customer.loyaltyTier}`;
+                        document.getElementById("navStaffRole").innerText = `${tierName} (${customer.currentPoints} Điểm)`;
+                        document.getElementById("navStaffRole").className = "badge bg-success me-3";
+                        
+                        const logoutBtn = document.querySelector("#navUserInfo button");
+                        if (logoutBtn) {
+                            logoutBtn.setAttribute("onclick", "logoutCustomer()");
+                        }
+                    } catch (e) {}
+                }
+            } else {
+                const staffStr = localStorage.getItem("staff");
+                if (staffStr && loginMode) {
+                    try {
+                        const staff = JSON.parse(staffStr);
+                        document.getElementById("navUserInfo").style.setProperty("display", "flex", "important");
+                        document.getElementById("navLoginBtn").style.display = "none";
+                        document.getElementById("navStaffName").innerText = staff.fullName;
+                        document.getElementById("navStaffRole").innerText = translateRole(staff.role);
+                        
+                        // Show relevant menus
+                        if (loginMode === 'Admin' && (staff.role === 'Owner' || staff.role === 'ShiftLeader')) {
+                            document.getElementById("navAdminLink").style.display = "block";
+                        }
+                        
+                        if (staff.role === 'Owner' || staff.role === 'ShiftLeader' || staff.role === 'Cashier') {
+                            document.getElementById("navPosLink").style.display = "block";
+                        }
+                        if (staff.role === 'Owner' || staff.role === 'ShiftLeader' || staff.role === 'Barista' || staff.role === 'PastryStaff') {
+                            document.getElementById("navPdsLink").style.display = "block";
+                        }
+                    } catch (e) {}
+                }
+            }
+        })();
+
+        function translateRole(role) {
+            switch(role) {
+                case 'Owner': return 'Chủ cửa hàng';
+                case 'ShiftLeader': return 'Trưởng ca';
+                case 'Cashier': return 'Thu ngân';
+                case 'Barista': return 'Pha chế (Bar)';
+                case 'PastryStaff': return 'Quầy bánh';
+                default: return role;
+            }
+        }
+
+        function logoutStaff() {
+            localStorage.removeItem("token");
+            localStorage.removeItem("staff");
+            localStorage.removeItem("loginMode");
+            window.location.href = '/Login';
+        }
+
+        function logoutCustomer() {
+            localStorage.removeItem("token");
+            localStorage.removeItem("customer");
+            localStorage.removeItem("loginMode");
+            window.location.href = '/Customer/Login';
+        }
+    </script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

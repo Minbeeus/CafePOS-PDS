@@ -8,11 +8,53 @@
     <link rel="stylesheet" href="~/css/PDS/Index.css" asp-append-version="true" />
 }
 
-<div class="pds-container">
-    <h1>Màn hình PDS</h1>
-    <p>Giao diện điều phối chế biến dành cho Barista và Pastry Staff.</p>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card bg-dark text-light border-secondary shadow">
+                <div class="card-header bg-info text-dark d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">MÀN HÌNH PDS (ĐIỀU PHỐI CHẾ BIẾN)</h5>
+                    <span class="badge bg-dark" id="pdsStationBadge">Quầy</span>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">Xác thực thành công!</h5>
+                    <p class="card-text text-muted">Chào mừng bạn đến với Màn hình hiển thị đơn hàng pha chế (PDS). Màn hình này hiển thị thời gian thực các đơn cần pha chế/làm bánh.</p>
+                    
+                    <div class="bg-secondary bg-opacity-10 p-3 rounded border border-info">
+                        <span class="fw-bold text-info">Bộ phận hiện tại:</span> 
+                        <span id="pdsStationName" class="badge bg-info text-dark ms-2">Chưa xác định</span>
+                    </div>
+
+                    <div class="mt-4 alert alert-secondary bg-dark text-muted border-secondary">
+                        <p class="mb-0 small"><strong>Sprint tiếp theo:</strong> Kết nối SignalR Hub để nhận đơn đặt hàng trực tiếp từ POS theo thời gian thực.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
-    <script src="~/js/PDS/Index.js" asp-append-version="true"></script>
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const station = urlParams.get('station') || 'Bar'; // default to Bar
+            
+            const badge = document.getElementById("pdsStationBadge");
+            const name = document.getElementById("pdsStationName");
+            
+            if (station.toLowerCase() === 'bar') {
+                badge.innerText = "Quầy Pha Chế (Bar)";
+                name.innerText = "QUẦY PHA CHẾ (BARISTA)";
+                name.className = "badge bg-info text-dark ms-2";
+            } else if (station.toLowerCase() === 'pastry') {
+                badge.innerText = "Quầy Bánh Ngọt";
+                name.innerText = "QUẦY BÁNH NGỌT & ĐỒ ĂN NHẸ";
+                name.className = "badge bg-warning text-dark ms-2";
+            } else {
+                badge.innerText = `Quầy ${station}`;
+                name.innerText = `BỘ PHẬN CHẾ BIẾN: ${station.toUpperCase()}`;
+            }
+        });
+    </script>
 }

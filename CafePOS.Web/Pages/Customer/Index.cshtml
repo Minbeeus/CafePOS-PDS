@@ -1,18 +1,188 @@
 @page
 @model CafePOS.Web.Pages.Customer.IndexModel
 @{
-    ViewData["Title"] = "Đặt hàng Online - Khách hàng";
+    ViewData["Title"] = "Cổng Khách Hàng - Dashboard";
 }
 
-@section Styles {
-    <link rel="stylesheet" href="~/css/Customer/Index.css" asp-append-version="true" />
-}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Profile Welcome Block -->
+            <div class="card border-0 shadow-sm mb-4" style="background: var(--bg-cream); border-radius: 20px;">
+                <div class="card-body p-4 d-flex align-items-center flex-wrap">
+                    <div class="profile-avatar-circle d-flex align-items-center justify-content-center me-4 mb-3 mb-md-0" 
+                         style="width: 70px; height: 70px; border-radius: 50%; background: var(--matcha-primary); color: white; font-size: 1.8rem; font-weight: 800; box-shadow: 0 4px 10px rgba(76, 112, 49, 0.2);">
+                        <span id="custAvatar">C</span>
+                    </div>
+                    <div>
+                        <h2 class="fw-bold mb-1" style="color: var(--coffee-dark);">Xin chào, <span id="custName">Khách hàng</span>!</h2>
+                        <p class="mb-0 text-muted" style="font-size: 0.95rem;">
+                            SĐT: <strong id="custPhone">-</strong> &nbsp;|&nbsp; Email: <strong id="custEmail">-</strong>
+                        </p>
+                    </div>
+                    <div class="ms-md-auto mt-3 mt-md-0">
+                        <button class="btn btn-outline-danger btn-sm px-3" style="border-radius: 10px;" onclick="logoutCustomer()">
+                            Đăng xuất
+                        </button>
+                    </div>
+                </div>
+            </div>
 
-<div class="customer-container">
-    <h1>Trang đặt hàng CafePOS</h1>
-    <p>Chào mừng bạn đến với trang đặt món của quán. Hãy thưởng thức ly nước tuyệt vời nhất!</p>
+            <div class="row g-4">
+                <!-- VIP / Loyalty Tier Card -->
+                <div class="col-md-6">
+                    <div class="card border-0 shadow text-white position-relative overflow-hidden" 
+                         style="background: linear-gradient(135deg, var(--coffee-dark) 0%, var(--coffee-medium) 100%); border-radius: 24px; min-height: 220px;">
+                        
+                        <!-- Decorative coffee bean watermark pattern -->
+                        <div class="position-absolute" style="right: -20px; bottom: -25px; font-size: 10rem; opacity: 0.08; pointer-events: none;">☕</div>
+                        
+                        <div class="card-body p-4 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <span class="badge bg-success px-3 py-2 text-uppercase font-monospace" style="border-radius: 8px; font-size: 0.8rem; letter-spacing: 1px;">
+                                        VIP CARD
+                                    </span>
+                                    <span style="color: var(--coffee-beige); font-weight: 800; font-size: 1.2rem;">CafePOS</span>
+                                </div>
+                                <h3 class="fw-bold mt-4 mb-1" id="custTier" style="color: var(--coffee-beige); font-size: 1.8rem;">None</h3>
+                                <p class="text-white-50 mb-0" style="font-size: 0.85rem; letter-spacing: 0.5px;">HẠNG THÀNH VIÊN</p>
+                            </div>
+                            
+                            <div class="mt-4 pt-2">
+                                <div class="d-flex justify-content-between align-items-end mb-1">
+                                    <span class="text-white-50" style="font-size: 0.85rem;">Điểm thưởng tích lũy</span>
+                                    <span class="fw-bold" style="color: var(--coffee-beige); font-size: 1.3rem;"><span id="custPoints">0</span> Điểm</span>
+                                </div>
+                                <div class="progress" style="height: 6px; background: rgba(255,255,255,0.15); border-radius: 10px;">
+                                    <div class="progress-bar bg-success" id="pointsProgressBar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <small class="text-white-50 mt-1 d-block" id="tierProgressNote" style="font-size: 0.78rem;">Tích thêm điểm để đổi quà tặng hấp dẫn.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loyalty Benefits & Quick Actions -->
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100" style="background: white; border-radius: 24px;">
+                        <div class="card-body p-4 d-flex flex-column justify-content-between">
+                            <div>
+                                <h4 class="fw-bold mb-3" style="color: var(--coffee-dark);">Ưu đãi & Thao tác nhanh</h4>
+                                <div class="list-group list-group-flush mb-4">
+                                    <div class="list-group-item bg-transparent border-0 px-0 py-2 d-flex align-items-center">
+                                        <div class="p-2 bg-success-subtle text-success rounded-circle me-3" style="font-size: 1.1rem; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">🎟️</div>
+                                        <div>
+                                            <strong style="color: var(--coffee-dark); font-size: 0.92rem;">Đổi Điểm Thưởng</strong>
+                                            <p class="mb-0 text-muted" style="font-size: 0.78rem;">Quy đổi điểm tích lũy lấy đồ uống miễn phí</p>
+                                        </div>
+                                    </div>
+                                    <div class="list-group-item bg-transparent border-0 px-0 py-2 d-flex align-items-center">
+                                        <div class="p-2 bg-info-subtle text-info rounded-circle me-3" style="font-size: 1.1rem; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">🚚</div>
+                                        <div>
+                                            <strong style="color: var(--coffee-dark); font-size: 0.92rem;">Theo Dõi Đơn Hàng</strong>
+                                            <p class="mb-0 text-muted" style="font-size: 0.78rem;">Cập nhật trạng thái pha chế (PDS) thời gian thực</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row g-2">
+                                <div class="col-12">
+                                    <a class="btn w-100 py-3 text-white fw-bold d-flex align-items-center justify-content-center gap-2" 
+                                       style="background: var(--matcha-primary); border-radius: 14px; box-shadow: 0 4px 10px rgba(76, 112, 49, 0.2);" 
+                                       href="/Customer/Index?action=new-order" onclick="alert('Tính năng đặt món online đang được phát triển trong Sprint tiếp theo!'); return false;">
+                                        ☕ Bắt đầu đặt món ngay
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Google Account Link Indicator -->
+            <div class="card border-0 shadow-sm mt-4 p-3" id="googleLinkedCard" style="border-radius: 16px; background: rgba(255,255,255,0.7); display: none;">
+                <div class="d-flex align-items-center">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google Logo" style="width: 20px; height: 20px;" class="me-3" />
+                    <span style="font-size: 0.88rem; color: var(--text-dark);">
+                        Tài khoản của bạn đã được liên kết với Google OAuth đăng nhập nhanh.
+                    </span>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </div>
 
 @section Scripts {
-    <script src="~/js/Customer/Index.js" asp-append-version="true"></script>
+    <script>
+        // Populate customer data dynamically on load
+        (function() {
+            const customerStr = localStorage.getItem("customer");
+            if (!customerStr) {
+                window.location.href = "/Customer/Login";
+                return;
+            }
+
+            try {
+                const customer = JSON.parse(customerStr);
+                
+                // Set text values
+                document.getElementById("custName").innerText = customer.fullName;
+                document.getElementById("custPhone").innerText = customer.phone || "Chưa cập nhật";
+                document.getElementById("custEmail").innerText = customer.email || "Chưa cập nhật";
+                document.getElementById("custPoints").innerText = customer.currentPoints;
+                
+                // Avatar initial
+                if (customer.fullName && customer.fullName.length > 0) {
+                    document.getElementById("custAvatar").innerText = customer.fullName.charAt(0).toUpperCase();
+                }
+
+                // Show Google linked status
+                if (customer.googleId) {
+                    document.getElementById("googleLinkedCard").style.display = "block";
+                }
+
+                // Loyalty Tier Display & styling
+                const tierEl = document.getElementById("custTier");
+                tierEl.innerText = translateTier(customer.loyaltyTier);
+
+                // Progress bar logic
+                const pBar = document.getElementById("pointsProgressBar");
+                const progressNote = document.getElementById("tierProgressNote");
+                let points = customer.currentPoints || 0;
+                
+                // Define levels for reward
+                let maxPointsForReward = 50; 
+                let percent = Math.min(Math.round((points / maxPointsForReward) * 100), 100);
+                pBar.style.width = percent + "%";
+                pBar.setAttribute("aria-valuenow", points);
+                pBar.setAttribute("aria-valuemax", maxPointsForReward);
+                
+                if (points >= maxPointsForReward) {
+                    progressNote.innerHTML = "🎉 Bạn đủ điểm đổi 1 ly nước miễn phí (Đổi trà sữa truyền thống - 50đ)!";
+                    pBar.className = "progress-bar bg-warning progress-bar-striped progress-bar-animated";
+                } else {
+                    let missing = maxPointsForReward - points;
+                    progressNote.innerText = `Tích thêm ${missing} điểm nữa để đổi nước uống miễn phí.`;
+                }
+
+            } catch (e) {
+                console.error("Error loading customer profile data", e);
+                logoutCustomer();
+            }
+        })();
+
+        function translateTier(tier) {
+            switch(tier) {
+                case 'None': return 'Standard Member';
+                case 'Silver': return 'Silver Tier';
+                case 'Gold': return 'Gold Tier';
+                case 'Platinum': return 'Platinum VIP';
+                case 'Diamond': return 'Diamond VIP';
+                default: return tier;
+            }
+        }
+    </script>
 }

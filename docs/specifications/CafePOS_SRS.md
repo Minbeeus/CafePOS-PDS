@@ -93,7 +93,7 @@ Tài liệu được xây dựng dựa trên kết quả Stakeholder Interview t
 
 ### 2.1 Biểu đồ quan hệ đối tượng (Entity Relationship Diagram)
 
-Biểu đồ mô tả cấu trúc dữ liệu gồm **19 thực thể** chính của hệ thống CafePOS, phân thành 5 nhóm chức năng: Identity & Staff, Menu & Products, Orders, Loyalty & Voucher, Shift & Inventory.
+Biểu đồ mô tả cấu trúc dữ liệu gồm **20 thực thể** chính của hệ thống CafePOS, phân thành 5 nhóm chức năng: Identity & Staff, Menu & Products, Orders, Loyalty & Voucher, Shift & Inventory.
 
 ```mermaid
 erDiagram
@@ -211,6 +211,13 @@ erDiagram
         int VoucherId FK
         int ApprovedByStaffId FK
         datetime ApprovedAt
+    }
+    LoyaltyTierConfigs {
+        int Id PK
+        string TierName
+        decimal MinSpendThreshold
+        decimal DiscountPercent
+        bool IsActive
     }
     Vouchers {
         int Id PK
