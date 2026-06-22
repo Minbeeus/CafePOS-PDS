@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -19,8 +19,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CafePOS.Domain\CafePOS.Domain.csproj" />
-    <ProjectReference Include="..\CafePOS.Application\CafePOS.Application.csproj" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\CafePOS.Domain\CafePOS.Domain.csproj" />
+    <ProjectReference Include="..\CafePOS.Application\CafePOS.Application.csproj" />
+    <ProjectReference Include="..\CafePOS.Infrastructure\CafePOS.Infrastructure.csproj" />
+    <ProjectReference Include="..\CafePOS.API\CafePOS.API.csproj" />
+  </ItemGroup>
 </Project>
+

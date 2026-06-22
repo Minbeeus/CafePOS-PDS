@@ -29,10 +29,15 @@ public class AppDbContext : DbContext
     public DbSet<InventoryCheckItem> InventoryCheckItems => Set<InventoryCheckItem>();
     public DbSet<IngredientTransaction> IngredientTransactions => Set<IngredientTransaction>();
     public DbSet<PointProduct> PointProducts => Set<PointProduct>();
+    public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        
+        // Apply separate configurations from assembly
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
         
         // Configure Shift relationships with Staff
         modelBuilder.Entity<Shift>()
@@ -58,13 +63,6 @@ public class AppDbContext : DbContext
             .HasOne(ic => ic.ApprovedBy)
             .WithMany()
             .HasForeignKey(ic => ic.ApprovedByStaffId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // Configure Voucher relationships with Staff
-        modelBuilder.Entity<Voucher>()
-            .HasOne(v => v.CreatedBy)
-            .WithMany()
-            .HasForeignKey(v => v.CreatedByStaffId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // Configure InventoryCheckItem relationships
@@ -162,12 +160,6 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(oit => oit.ToppingId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        // Configure ProductSize relationships
-        modelBuilder.Entity<ProductSize>()
-            .HasOne(ps => ps.Product)
-            .WithMany(p => p.Sizes)
-            .HasForeignKey(ps => ps.ProductId)
-            .OnDelete(DeleteBehavior.Cascade);
     }
 }
+

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using CafePOS.Application.Interfaces;
+using CafePOS.Application.Interfaces.Repositories;
 using CafePOS.Application.Services;
 using CafePOS.Infrastructure.Authentication;
 using CafePOS.Infrastructure.Repositories;
@@ -53,8 +54,14 @@ builder.Services.AddCors(options =>
 // Register Dependencies
 builder.Services.AddScoped<IStaffRepository, StaffRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IShiftRepository, ShiftRepository>();
+builder.Services.AddScoped<IVoucherRepository, VoucherRepository>();
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IJwtProvider, JwtProvider>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<OrderService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -62,7 +69,7 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// Migrate and Seed Database
+// Migrate and Seed Database (Trigger watch rebuild to seed data)
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;

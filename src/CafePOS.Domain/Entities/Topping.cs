@@ -7,4 +7,6 @@ public class Topping
     public decimal Price { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
+    public ICollection<Product> Products { get; set; } = new List<Product>();
 }
+

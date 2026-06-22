@@ -15,4 +15,6 @@ public class Product
     public bool HasIceOption { get; set; }
     public DateTime CreatedAt { get; set; }
     public ICollection<ProductSize> Sizes { get; set; } = new List<ProductSize>();
+    public ICollection<Topping> Toppings { get; set; } = new List<Topping>();
 }
+

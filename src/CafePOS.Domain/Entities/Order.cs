@@ -32,4 +32,6 @@ public class Order
     public DateTime CreatedAt { get; set; }
     public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
     public ICollection<OrderDiscount> Discounts { get; set; } = new List<OrderDiscount>();
+    public byte[]? RowVersion { get; set; }
 }
+

@@ -8,6 +8,7 @@ using System.IO;
 using Microsoft.AspNetCore.Http;
 using System.Collections.Generic;
 using System;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CafePOS.API.Controllers;
 
@@ -32,6 +33,7 @@ public class ProductsController : ControllerBase
         var products = await _context.Products
             .Include(p => p.Category)
             .Include(p => p.Sizes)
+            .Include(p => p.Toppings)
             .OrderBy(p => p.Name)
             .Select(p => new
             {
@@ -52,6 +54,12 @@ public class ProductsController : ControllerBase
                     s.SizeLabel,
                     s.PriceModifier,
                     s.IsDefault
+                }).ToList(),
+                Toppings = p.Toppings.Select(t => new
+                {
+                    t.Id,
+                    t.Name,
+                    t.Price
                 }).ToList()
             })
             .ToListAsync();
@@ -65,6 +73,7 @@ public class ProductsController : ControllerBase
         var p = await _context.Products
             .Include(p => p.Category)
             .Include(p => p.Sizes)
+            .Include(p => p.Toppings)
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (p == null)
@@ -91,6 +100,12 @@ public class ProductsController : ControllerBase
                 s.SizeLabel,
                 s.PriceModifier,
                 s.IsDefault
+            }).ToList(),
+            Toppings = p.Toppings.Select(t => new
+            {
+                t.Id,
+                t.Name,
+                t.Price
             }).ToList()
         };
 
@@ -98,6 +113,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Owner")]
     public async Task<IActionResult> CreateProduct([FromBody] ProductCreateRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
@@ -118,6 +134,14 @@ public class ProductsController : ControllerBase
             HasIceOption = request.HasIceOption,
             CreatedAt = DateTime.UtcNow
         };
+
+        if (request.ToppingIds != null && request.ToppingIds.Any())
+        {
+            var toppings = await _context.Toppings
+                .Where(t => request.ToppingIds.Contains(t.Id))
+                .ToListAsync();
+            product.Toppings = toppings;
+        }
 
         _context.Products.Add(product);
         await _context.SaveChangesAsync(); // Generates productId
@@ -156,10 +180,12 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Owner")]
     public async Task<IActionResult> UpdateProduct(int id, [FromBody] ProductCreateRequest request)
     {
         var product = await _context.Products
             .Include(p => p.Sizes)
+            .Include(p => p.Toppings)
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (product == null)
@@ -212,12 +238,23 @@ public class ProductsController : ControllerBase
             _context.ProductSizes.Add(defaultSize);
         }
 
+        // Update toppings
+        product.Toppings.Clear();
+        if (request.ToppingIds != null && request.ToppingIds.Any())
+        {
+            var toppings = await _context.Toppings
+                .Where(t => request.ToppingIds.Contains(t.Id))
+                .ToListAsync();
+            product.Toppings = toppings;
+        }
+
         await _context.SaveChangesAsync();
 
         return Ok(new { success = true, data = product, message = "Cập nhật sản phẩm thành công" });
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Owner")]
     public async Task<IActionResult> DeleteProduct(int id)
     {
         var product = await _context.Products.FindAsync(id);
@@ -232,7 +269,29 @@ public class ProductsController : ControllerBase
         return Ok(new { success = true, message = "Xóa sản phẩm thành công" });
     }
 
+    [HttpPatch("{id}/status")]
+    [Authorize(Roles = "Owner,ShiftLeader")]
+    public async Task<IActionResult> UpdateProductStatus(int id, [FromBody] ProductStatusUpdateRequest request)
+    {
+        var product = await _context.Products.FindAsync(id);
+        if (product == null)
+        {
+            return NotFound(new { success = false, message = "Không tìm thấy sản phẩm." });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Status))
+        {
+            return BadRequest(new { success = false, message = "Trạng thái không được để trống." });
+        }
+
+        product.Status = request.Status;
+        await _context.SaveChangesAsync();
+
+        return Ok(new { success = true, data = product, message = "Cập nhật trạng thái thành công" });
+    }
+
     [HttpPost("upload-image")]
+    [Authorize(Roles = "Owner,ShiftLeader")]
     public async Task<IActionResult> UploadImage(IFormFile file)
     {
         if (file == null || file.Length == 0)
@@ -292,6 +351,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost("categories")]
+    [Authorize(Roles = "Owner")]
     public async Task<IActionResult> CreateCategory([FromBody] CategoryRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
@@ -318,6 +378,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPut("categories/{id}")]
+    [Authorize(Roles = "Owner")]
     public async Task<IActionResult> UpdateCategory(int id, [FromBody] CategoryRequest request)
     {
         var category = await _context.Categories.FindAsync(id);
@@ -342,6 +403,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpDelete("categories/{id}")]
+    [Authorize(Roles = "Owner")]
     public async Task<IActionResult> DeleteCategory(int id)
     {
         var category = await _context.Categories
@@ -379,6 +441,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost("toppings")]
+    [Authorize(Roles = "Owner")]
     public async Task<IActionResult> CreateTopping([FromBody] ToppingRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
@@ -401,6 +464,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPut("toppings/{id}")]
+    [Authorize(Roles = "Owner")]
     public async Task<IActionResult> UpdateTopping(int id, [FromBody] ToppingRequest request)
     {
         var topping = await _context.Toppings.FindAsync(id);
@@ -424,6 +488,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpDelete("toppings/{id}")]
+    [Authorize(Roles = "Owner")]
     public async Task<IActionResult> DeleteTopping(int id)
     {
         var topping = await _context.Toppings.FindAsync(id);
@@ -453,6 +518,7 @@ public class ProductCreateRequest
     public bool HasSugarOption { get; set; }
     public bool HasIceOption { get; set; }
     public List<SizeRequest>? Sizes { get; set; }
+    public List<int>? ToppingIds { get; set; }
 }
 
 public class SizeRequest
@@ -475,4 +541,9 @@ public class ToppingRequest
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
     public bool? IsActive { get; set; }
+}
+
+public class ProductStatusUpdateRequest
+{
+    public string Status { get; set; } = string.Empty;
 }

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using CafePOS.Infrastructure.Data;
 using System.Threading.Tasks;
 using System.Linq;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CafePOS.API.Controllers;
 
@@ -18,6 +19,7 @@ public class InventoryController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "Owner,ShiftLeader")]
     public async Task<IActionResult> GetInventory()
     {
         var ingredients = await _context.Ingredients
