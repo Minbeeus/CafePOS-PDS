@@ -1,347 +1,252 @@
 # 📜 CafePOS & PDS - AI Development Rules
 
-## Project Overview
+## Purpose
 
-Hệ thống Quản lý Bán hàng Quán Cà phê / Trà sữa (CafePOS & PDS)
+Tài liệu này định nghĩa cách mọi AI Coding Agent
+(Cursor, Claude Code, Roo Code, Cline, Windsurf, GitHub Copilot, ChatGPT...)
+phải làm việc trong dự án CafePOS & PDS.
 
-Mục tiêu của tài liệu này là đảm bảo mọi AI Coding Agent (Cursor, Claude Code, Cline, Roo Code, Windsurf...) tạo ra mã nguồn nhất quán, an toàn và tuân thủ kiến trúc dự án.
+AI phải coi tài liệu này là nguồn hướng dẫn chính trước khi tạo hoặc chỉnh sửa mã nguồn.
 
 ---
 
-# 1. General Principles
+# 1. Required Reading Order
+
+Trước khi thực hiện bất kỳ thay đổi nào, AI phải đọc các tài liệu sau theo đúng thứ tự:
+
+1. docs/conventions/business_rules.md
+2. docs/conventions/api_conventions.md
+3. docs/conventions/coding_conventions.md
+4. docs/conventions/ui_guidelines.md
+
+---
+
+# 2. Rule Priority
+
+Nếu có xung đột giữa các tài liệu:
+
+Business Rules
+↓
+API Conventions
+↓
+Coding Conventions
+↓
+UI Guidelines
+
+Tài liệu ở cấp cao hơn luôn được ưu tiên.
+
+Ví dụ:
+
+- Business Rules yêu cầu không cho phép thanh toán trùng.
+- API Conventions đề xuất endpoint khác.
+
+=> Business Rules thắng.
+
+---
+
+# 3. Before Writing Code
+
+AI phải:
+
+- Đọc code liên quan trước khi sửa.
+- Hiểu luồng nghiệp vụ hiện tại.
+- Tìm component hoặc service đã tồn tại.
+- Tái sử dụng code hiện có nếu có thể.
+- Kiểm tra các interface hiện tại.
+- Kiểm tra DTO hiện tại.
+- Kiểm tra API contract hiện tại.
+
+Không được viết code khi chưa hiểu luồng hiện tại.
+
+---
+
+# 4. General Principles
 
 ## MUST DO
 
-* Luôn đọc code liên quan trước khi sửa đổi.
-* Ưu tiên tái sử dụng code hiện có.
-* Tuân thủ kiến trúc hiện tại của dự án.
-* Giữ nguyên API contract hiện có.
-* Sử dụng Dependency Injection cho mọi service.
-* Sử dụng async/await cho các thao tác I/O.
-* Sử dụng ILogger để ghi log.
+- Tuân thủ kiến trúc hiện có.
+- Tuân thủ Dependency Injection.
+- Tuân thủ SOLID.
+- Tuân thủ Separation Of Concerns.
+- Sử dụng async/await cho I/O.
+- Sử dụng ILogger cho logging.
+- Tạo mã nguồn dễ đọc và dễ bảo trì.
 
 ## MUST NOT
 
-* Không tạo kiến trúc mới khi chưa được yêu cầu.
-* Không thêm package/dependency mới nếu chưa được phép.
-* Không đổi tên API endpoint đang hoạt động.
-* Không thay đổi schema database ngoài phạm vi yêu cầu.
-* Không sử dụng Console.WriteLine().
-* Không hardcode configuration, connection string hoặc secret.
+- Không tạo kiến trúc mới nếu chưa được yêu cầu.
+- Không tạo framework riêng.
+- Không thêm package mới nếu chưa được yêu cầu.
+- Không đổi API contract hiện có.
+- Không đổi database schema ngoài phạm vi task.
+- Không hardcode configuration.
+- Không hardcode connection string.
+- Không hardcode secret.
+- Không sử dụng Console.WriteLine().
 
 ---
 
-# 2. Git Workflow
+# 5. Architecture Rules
 
-## Branch Naming
+Controller
 
-### Feature
-
-feature/<feature-name>
-
-Ví dụ:
-
-feature/vietqr-payment
-
-feature/order-management
-
-### Bug Fix
-
-bugfix/<bug-name>
-
-Ví dụ:
-
-bugfix/payment-timeout
-
-bugfix/order-duplicate
-
-### Hot Fix
-
-hotfix/<issue-name>
-
-Ví dụ:
-
-hotfix/payment-error
-
----
-
-## Commit Convention
-
-Sử dụng Conventional Commits:
-
-feat: add vietqr payment
-
-fix: prevent duplicate payment
-
-refactor: extract payment service
-
-docs: update api convention
-
-chore: update packages
-
-test: add payment service tests
-
----
-
-# 3. Coding Conventions
-
-## C# Naming Convention
-
-### PascalCase
-
-* Class
-* Interface
-* Property
-* Method
-* Enum
-
-Ví dụ:
-
-OrderService
-
-PaymentStatus
-
-GetOrderByIdAsync()
-
-### Interface
-
-Bắt đầu bằng chữ I
-
-Ví dụ:
-
-IOrderService
-
-IPaymentRepository
-
-### camelCase
-
-Biến cục bộ và tham số
-
-Ví dụ:
-
-orderId
-
-paymentRequest
-
-### _camelCase
-
-Private fields
-
-Ví dụ:
-
-_dbContext
-
-_logger
-
-_orderRepository
-
-### Async Method
-
-Bắt buộc có hậu tố Async
-
-Ví dụ:
-
-CreateOrderAsync()
-
-SavePaymentAsync()
-
----
-
-# 4. Architecture Rules
-
-## Controller
-
-Controller chỉ:
-
-* Nhận request
-* Validate request cơ bản
-* Gọi service
-* Trả response
+- Nhận request
+- Validate cơ bản
+- Gọi service
+- Trả response
 
 Không chứa business logic.
 
 ---
 
-## Service Layer
+Service
 
-Service chứa:
-
-* Business logic
-* Validation nghiệp vụ
-* Transaction handling
+- Chứa business logic
+- Validation nghiệp vụ
+- Transaction handling
 
 ---
 
-## Repository Layer
+Repository
 
-Repository chỉ:
-
-* Truy vấn dữ liệu
-* CRUD
+- CRUD
+- Query dữ liệu
 
 Không chứa business logic.
 
 ---
 
-## DTO Usage
+# 6. UI Rules
 
-Không trả Entity trực tiếp cho API.
+Trước khi tạo giao diện:
 
-Luôn sử dụng:
+AI phải:
 
-* Request DTO
-* Response DTO
-
-Ví dụ:
-
-CreateOrderRequest
-
-OrderResponse
+1. Đọc ui_guidelines.md
+2. Đọc site.css
+3. Tái sử dụng CSS variables hiện có
+4. Tái sử dụng component hiện có
 
 ---
 
-# 5. Entity Framework Core Rules
+Không được:
 
-## Save Changes
-
-Luôn sử dụng:
-
-```csharp
-await _dbContext.SaveChangesAsync();
-```
-
-Không được viết:
-
-```csharp
-SaveChangeAsync();
-```
+- Hardcode màu sắc
+- Hardcode spacing
+- Dùng inline style nếu không cần thiết
+- Tạo theme mới
 
 ---
-
-## Query Optimization
-
-Ưu tiên:
-
-```csharp
-.AsNoTracking()
-```
-
-cho các API chỉ đọc dữ liệu.
-
----
-
-## Include
-
-Chỉ Include các navigation property thực sự cần thiết.
-
-Tránh eager loading quá mức.
-
----
-
-## Transaction
-
-Các nghiệp vụ thanh toán hoặc tạo đơn hàng phải được thực hiện trong transaction.
-
----
-
-# 6. Logging Rules
-
-Không sử dụng:
-
-```csharp
-Console.WriteLine();
-```
 
 Bắt buộc:
 
-```csharp
-_logger.LogInformation();
-_logger.LogWarning();
-_logger.LogError();
-```
+- Responsive
+- Loading State
+- Empty State
+- Error State
+- Focus State
 
 ---
 
-# 7. Enum Rules
+# 7. API Rules
 
-## Database
+Mọi API phải tuân thủ:
 
-Lưu dưới dạng int.
+docs/conventions/api_conventions.md
 
-Ví dụ:
+Đặc biệt:
 
-PaymentStatus = 2
-
----
-
-## API Response
-
-Serialize thành string.
-
-Đúng:
-
-```json
-{
-  "status": "Preparing"
-}
-```
-
-Sai:
-
-```json
-{
-  "status": 2
-}
-```
+- API versioning
+- DTO usage
+- Enum serialization
+- Status code consistency
+- Authentication
+- Authorization
 
 ---
 
-# 8. Soft Delete Rules
+# 8. Business Rules
 
-Không sử dụng DELETE vật lý cho dữ liệu nghiệp vụ.
+Mọi thay đổi nghiệp vụ phải tuân thủ:
 
-Bắt buộc dùng:
+docs/conventions/business_rules.md
 
-```csharp
-IsDeleted
-DeletedAt
-DeletedBy
-```
+Đặc biệt:
 
-DELETE API chỉ đánh dấu xóa mềm.
+- Order Lifecycle
+- Payment Rules
+- Inventory Rules
+- Loyalty Rules
+- Promotion Rules
+- Role Permissions
 
-Response:
-
-204 No Content
+AI không được tự ý thay đổi các quy tắc này.
 
 ---
 
-# 9. Payment Idempotency
+# 9. Critical Rules
 
-## Critical Business Rule
+## Payment Idempotency
 
-Một Order chỉ được có tối đa một Payment thành công.
+Một Order chỉ được có tối đa:
 
-### API Validation
+1 Successful Payment
 
-Trước khi tạo payment:
+Trước khi tạo Payment:
 
-* Kiểm tra payment thành công đã tồn tại chưa.
-* Nếu tồn tại:
+- Kiểm tra Payment Completed đã tồn tại chưa.
 
-```http
+Nếu tồn tại:
+
 409 Conflict
-```
 
-### Database Constraint
+---
 
-Bắt buộc có Unique Constraint:
+## Soft Delete
 
-```sql
-UNIQUE(OrderId)
-```
+Không xóa vật lý dữ liệu nghiệp vụ.
 
-hoặc unique index tương đương cho payment thành công.
+Sử dụng:
+
+- IsDeleted
+- DeletedAt
+- DeletedBy
+
+---
+
+## Enum Serialization
+
+Database:
+
+int
+
+API:
+
+string
+
+---
+
+## Logging
+
+Không sử dụng:
+
+Console.WriteLine()
+
+Sử dụng:
+
+ILogger
+
+---
+
+## SaveChanges
+
+Luôn sử dụng:
+
+await _dbContext.SaveChangesAsync();
+
+Không sử dụng:
+
+SaveChangeAsync()
 
 ---
 
@@ -349,11 +254,9 @@ hoặc unique index tương đương cho payment thành công.
 
 Khi thay đổi Entity:
 
-1. Tạo Migration.
+1. Tạo migration mới.
 2. Kiểm tra migration script.
-3. Không chỉnh sửa migration cũ đã deploy.
-
-Chỉ tạo migration mới.
+3. Không chỉnh sửa migration đã deploy.
 
 ---
 
@@ -363,32 +266,94 @@ Mọi thay đổi business logic phải có test.
 
 Ưu tiên:
 
-* Unit Test cho Service
-* Integration Test cho API
+- Unit Test
+- Integration Test
 
-Không merge code nếu test thất bại.
+Không merge khi test thất bại.
 
 ---
 
-# 12. Before Completing Any Task
+# 12. Code Review Checklist
 
-AI phải kiểm tra:
+Trước khi hoàn thành task:
 
-* Build thành công.
-* Không có compile error.
-* Không có warning nghiêm trọng.
-* API contract không bị thay đổi ngoài yêu cầu.
-* Migration hợp lệ.
-* Business rule thanh toán không bị ảnh hưởng.
-* Soft delete vẫn hoạt động đúng.
+AI phải tự kiểm tra:
 
-Sau khi hoàn thành phải tóm tắt:
+- Build thành công
+- Không compile error
+- Không warning nghiêm trọng
+- Không dead code
+- Không unused dependency
+- Không Console.WriteLine()
+- Không hardcoded secret
+- Không phá vỡ API contract
+- Không phá vỡ Business Rules
+- Không phá vỡ Soft Delete
+- Không phá vỡ Payment Rules
 
-* File đã thay đổi.
-* Mục đích thay đổi.
-* Rủi ro có thể phát sinh.
-* Migration được thêm mới (nếu có).
-* API bị ảnh hưởng (nếu có).
+---
 
-```
-```
+# 13. Required Output Format
+
+Sau khi hoàn thành task:
+
+AI phải tóm tắt:
+
+## Summary
+
+- Mục tiêu thay đổi
+- Cách triển khai
+
+## Files Changed
+
+- Danh sách file đã sửa
+
+## Database Changes
+
+- Migration mới (nếu có)
+
+## API Impact
+
+- Endpoint bị ảnh hưởng
+
+## Risks
+
+- Các rủi ro tiềm ẩn
+
+## Manual Testing
+
+- Các bước kiểm thử đề xuất
+
+---
+
+# 14. Definition Of Done
+
+Một task chỉ được xem là hoàn thành khi:
+
+✓ Build thành công
+
+✓ Test thành công
+
+✓ Tuân thủ Business Rules
+
+✓ Tuân thủ API Conventions
+
+✓ Tuân thủ Coding Conventions
+
+✓ Tuân thủ UI Guidelines
+
+✓ Không phá vỡ chức năng hiện có
+
+✓ Có báo cáo thay đổi đầy đủ
+
+# 15. AI Decision Rules
+
+Before creating new code:
+
+1. Reuse existing code if possible.
+2. Extend existing modules before creating new modules.
+3. Modify existing pages before creating new pages.
+4. Modify existing services before creating new services.
+5. Prefer consistency over creativity.
+6. Prefer maintainability over clever solutions.
+7. Prefer project conventions over personal preferences.

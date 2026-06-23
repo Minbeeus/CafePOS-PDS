@@ -1,143 +1,601 @@
-# 💻 Quy chuẩn Lập trình (Coding Conventions)
-### Hệ thống Quản lý Bán hàng Quán Cà phê / Trà sữa (CafePOS & PDS)
+# 💻 Coding Conventions
 
-Tài liệu này quy định các quy tắc lập trình (coding standards), quy tắc đặt tên (Naming Conventions) và tổ chức mã nguồn cho cả Backend (C#/.NET) lẫn Frontend (HTML, CSS, JavaScript, Razor Pages).
+## CafePOS & PDS
 
----
-
-## 1. Quy chuẩn Backend (C# / .NET)
-
-Chúng ta tuân theo các chuẩn thiết kế và lập trình hiện đại của Microsoft .NET:
-
-### 1.1 Quy tắc đặt tên (Naming Rules)
-
-| Thành phần | Quy tắc đặt tên | Ví dụ |
-|---|---|---|
-| **Class / Struct / Record** | `PascalCase` | `OrderService`, `ProductController` |
-| **Interface** | `PascalCase` bắt đầu bằng `I` | `IOrderService`, `IInventoryRepository` |
-| **Method** | `PascalCase` | `GetOrderByIdAsync`, `CalculateTotal` |
-| **Method bất đồng bộ** | Kết thúc bằng hậu tố `Async` | `SaveChangesAsync` (Không dùng `SaveChangeAsync`) |
-| **Local Variable** | `camelCase` | `totalAmount`, `currentShift` |
-| **Parameter** | `camelCase` | `orderId`, `updatedBy` |
-| **Private Field** | `camelCase` có dấu gạch dưới `_` ở đầu | `_dbContext`, `_logger` |
-| **Public Property** | `PascalCase` | `Id`, `CustomerName`, `TotalPrice` |
-| **Constant / Enum** | `PascalCase` | `MaxRetryCount`, `OrderStatus.Pending` |
-
-### 1.2 Quy tắc viết Code & Xử lý Bất đồng bộ
-* Luôn sử dụng Dependency Injection (DI) để inject các dịch vụ thông qua Constructor.
-* Các hàm xử lý I/O (Database, Network) bắt buộc phải dùng lập trình bất đồng bộ (`async` / `await`).
-* **Sửa lỗi phổ biến**: Sử dụng chính xác phương thức bất đồng bộ của EF Core là `SaveChangesAsync()` để lưu thay đổi vào cơ sở dữ liệu. Nghiêm cấm viết thiếu chữ "s" thành `SaveChangeAsync()`.
-* Không viết trực tiếp các Magic Numbers/Strings vào logic. Khai báo hằng số (`const`) hoặc cấu hình trong `appsettings.json`.
-
-### 1.3 Quy tắc Nullable Reference Types
-* Toàn bộ các project trong Solution bắt buộc phải kích hoạt tính năng kiểm tra Nullable:
-  ```xml
-  <Nullable>enable</Nullable>
-  ```
-* Khai báo rõ ràng các biến/thuộc tính có thể nhận giá trị `null` bằng dấu chấm hỏi `?`:
-  ```csharp
-  string? phoneNumber;
-  Customer? customer;
-  ```
-* Tránh cảnh báo từ compiler bằng cách xử lý kiểm tra `null` cẩn thận hoặc sử dụng các giá trị mặc định thích hợp.
-
-### 1.4 Quy chuẩn đặt tên DTO (DTO Naming Convention)
-Hệ thống không sử dụng các class DTO chung chung (như `OrderDto`, `ProductDto`) cho mọi hành động CRUD. Thay vào đó, bắt buộc đặt tên DTO phân tách rõ ràng theo Request/Response của từng chức năng:
-* **Tạo đơn hàng**: `CreateOrderRequest` và `CreateOrderResponse`
-* **Cập nhật sản phẩm**: `UpdateProductRequest` và `UpdateProductResponse`
-* **Lấy thông tin**: `GetProductDetailResponse`
-* Quy định này giúp dễ dàng tùy biến cấu trúc dữ liệu truyền nhận mà không ảnh hưởng đến các API khác.
-
-### 1.5 Quy chuẩn ghi nhận nhật ký (Logging Convention)
-* Sử dụng interface `ILogger` được inject để ghi nhận thông tin hệ thống.
-* Sử dụng các mức độ log phù hợp:
-  * `_logger.LogInformation()` cho các sự kiện thông thường trong hệ thống.
-  * `_logger.LogWarning()` cho các trường hợp bất thường nhưng không gây lỗi ứng dụng.
-  * `_logger.LogError()` cho các lỗi ngoại lệ (Exceptions), lỗi hệ thống cần can thiệp.
-* **Quy tắc nghiêm ngặt**: **Tuyệt đối không sử dụng `Console.WriteLine()`** trong code production để in thông tin ra màn hình console.
-
-### 1.6 Quy chuẩn sử dụng Enum (Enum Convention)
-* Khai báo các enum nghiệp vụ rõ ràng:
-  ```csharp
-  public enum OrderStatus
-  {
-      Draft,
-      Confirmed,
-      Preparing,
-      Completed,
-      Closed,
-      Cancelled
-  }
-  ```
-* **Lưu trữ Database**: Enum được lưu trữ dưới dạng số nguyên **`int`** trong SQL Server để tối ưu hiệu năng truy vấn và dung lượng lưu trữ.
-* **Truyền nhận API**: Khi serialize qua API trả về Client, enum bắt buộc được chuyển đổi sang dạng **`string`** (ví dụ: `"status": "Preparing"` thay vì số `2`) để Client dễ đọc và tránh phụ thuộc vào thứ tự khai báo số của enum.
+Tài liệu này quy định các chuẩn lập trình, tổ chức mã nguồn và kiến trúc cho toàn bộ hệ thống CafePOS & PDS.
 
 ---
 
-## 2. Quy chuẩn Frontend (MVC Views, HTML, CSS, JavaScript)
+# 1. General Principles
 
-### 2.1 Quy tắc đặt tên trong HTML & Views
-* **HTML Tags**: Viết chữ thường toàn bộ (ví dụ: `<div>`, `<span>`, `<input>`).
-* **Thuộc tính ID (`id`)**: Định dạng bằng `kebab-case` (ví dụ: `btn-checkout`, `input-voucher-code`). Phải là duy nhất trên trang.
-* **Thuộc tính Class (`class`)**: Định dạng bằng `kebab-case` (ví dụ: `product-card`, `btn-primary`).
+## MUST DO
 
-### 2.2 Quy tắc đặt tên & sử dụng màu trong CSS
-* **Quy tắc biến màu (CSS Variables)**:
-  * Tất cả các mã màu sử dụng trong CSS **bắt buộc** phải được định nghĩa tại `:root` trong file [site.css](file:///d:/VisualStudio/CafePOS&PDS/CafePOS.Web/wwwroot/css/site.css).
-  * Đặt tên biến dạng `kebab-case` (ví dụ: `--pos-bg`, `--status-done`, `--customer-primary`).
-  * Tuyệt đối không viết trực tiếp mã màu HEX hoặc RGB vào các CSS selector khác. Phải gọi màu thông qua biến: `color: var(--color-white);`.
+* Luôn đọc code hiện có trước khi sửa đổi.
+* Ưu tiên tái sử dụng code hiện có.
+* Tuân thủ kiến trúc hiện tại của dự án.
+* Tuân thủ Separation of Concerns.
+* Tuân thủ Dependency Injection.
+* Viết code dễ đọc hơn là code ngắn.
 
-### 2.3 Quy tắc đặt tên & Chia sẻ mã nguồn JavaScript
-* **Quy tắc đặt tên JS**:
-  * Biến & Hàm: `camelCase` (ví dụ: `selectedProductId`, `handleCheckoutClick()`).
-  * Hằng số: `UPPER_SNAKE_CASE` (ví dụ: `API_BASE_URL`).
-  * Lớp (Classes): `PascalCase` (ví dụ: `OrderTracker`).
-* **Quy chuẩn chia sẻ code JS (Shared JS Convention)**:
-  * Thay vì viết tất cả mã nguồn JS cô lập trong các tệp riêng lẻ của từng trang (như `Orders.js`, `Products.js`), cho phép và khuyến khích tạo các file JavaScript dùng chung phục vụ các hạ tầng dùng chung:
-    * `api-client.js`: Thư viện xử lý gọi AJAX/fetch API chung.
-    * `signalr.service.js`: Quản lý kết nối và nhận sự kiện SignalR.
-    * `toast.service.js`: Quản lý hiển thị thông báo nhanh (toast messages).
-    * `modal.service.js`: Quản lý hiển thị các popup dialog.
-  * Các file này phải được lưu trữ trong thư mục dùng chung và khai báo dùng chung ở Layout chính.
+## MUST NOT
 
-### 2.4 Cấu trúc thư mục tĩnh Frontend (Folder Structure - Web)
-Quy hoạch cấu trúc thư mục chứa file tĩnh trong project MVC Web:
-```
-wwwroot/
- ├── css/              # Chứa các file site.css và css dùng chung
- │    └── [Controller]/# Thư mục CSS tương ứng với Controller
- ├── js/               # Chứa các tệp JavaScript dùng chung
- │    ├── shared/      # Chứa api-client.js, toast.service.js, ...
- │    └── [Controller]/# Thư mục JS tương ứng với Controller
- └── images/           # Chứa các hình ảnh, assets tĩnh của dự án
+* Không tạo kiến trúc mới nếu chưa được yêu cầu.
+* Không thêm package mới nếu chưa được chấp thuận.
+* Không hardcode dữ liệu nghiệp vụ.
+* Không hardcode connection string.
+* Không hardcode secret hoặc API key.
+* Không copy-paste logic giữa các module.
+
+---
+
+# 2. Backend Naming Convention (C#)
+
+## Classes
+
+Sử dụng PascalCase.
+
+```csharp
+OrderService
+ProductController
+InventoryRepository
 ```
 
 ---
 
-## 3. Quy chuẩn cấu trúc thư mục Dự án (Solution Structure)
+## Interfaces
 
-Để tránh tình trạng lệch cấu trúc khi hệ thống phình to, toàn bộ ứng dụng CafePOS & PDS được tổ chức theo kiến trúc phân lớp chuẩn:
-* **Backend Solution**:
-  * `CafePOS.Domain`: Chứa các thực thể Database (Entities), Enums và các logic lõi không phụ thuộc thư viện ngoài.
-  * `CafePOS.Infrastructure`: Chứa cấu hình EF Core (DbContext), Migrations, Repositories, Background Jobs, kết nối dịch vụ ngoài.
-  * `CafePOS.Application`: Chứa các Service nghiệp vụ, interface, DTOs (Request/Response models), mapper, validator.
-  * `CafePOS.API`: Project ASP.NET Core Web API chứa các Controllers, Hubs SignalR, Middlewares, Program.cs.
-  * `CafePOS.Web`: Project MVC UI (Frontend) chứa các Views (.cshtml), Controllers điều hướng, CSS/JS tĩnh.
+Bắt đầu bằng chữ I.
+
+```csharp
+IOrderService
+IProductRepository
+```
 
 ---
 
-## 4. Quy chuẩn quản lý mã nguồn Git (Git Convention)
+## Methods
 
-### 4.1 Quy chuẩn đặt tên nhánh (Branch Naming)
-Tên nhánh được đặt theo tiếng Anh, viết thường toàn bộ và phân tách bằng dấu gạch ngang `-`, bắt đầu bằng các tiền tố quy định loại nhánh:
-* Nhánh tính năng mới: `feature/` (Ví dụ: `feature/vietqr-payment`, `feature/order-management`).
-* Nhánh sửa lỗi: `bugfix/` (Ví dụ: `bugfix/pds-order-duplicate`).
-* Nhánh sửa lỗi khẩn cấp trên production: `hotfix/` (Ví dụ: `hotfix/payment-error`).
+Sử dụng PascalCase.
 
-### 4.2 Quy chuẩn viết thông điệp Commit (Conventional Commits)
-Thông điệp commit bắt buộc phải sử dụng các tiền tố chuẩn sau để mô tả ngắn gọn hành động:
-* `feat:` thêm tính năng mới (Ví dụ: `feat: add vietqr payment`).
-* `fix:` sửa lỗi (Ví dụ: `fix: prevent duplicate payment`).
-* `refactor:` tái cấu trúc code nhưng không đổi tính năng (Ví dụ: `refactor: extract order service`).
-* `docs:` cập nhật tài liệu (Ví dụ: `docs: update api convention`).
-* `chore:` cập nhật thư viện, cấu hình build, hoặc tool (Ví dụ: `chore: update packages`).
+```csharp
+GetOrderById()
+CalculateTotal()
+```
+
+---
+
+## Async Methods
+
+Bắt buộc có hậu tố Async.
+
+```csharp
+GetOrderByIdAsync()
+CreateOrderAsync()
+SaveChangesAsync()
+```
+
+Không được:
+
+```csharp
+SaveChangeAsync()
+```
+
+---
+
+## Variables & Parameters
+
+Sử dụng camelCase.
+
+```csharp
+orderId
+customerName
+totalAmount
+```
+
+---
+
+## Private Fields
+
+Sử dụng _camelCase.
+
+```csharp
+_dbContext
+_logger
+_orderRepository
+```
+
+---
+
+## Constants
+
+Sử dụng PascalCase.
+
+```csharp
+MaxRetryCount
+DefaultPageSize
+```
+
+---
+
+## Enums
+
+Sử dụng PascalCase.
+
+```csharp
+OrderStatus
+PaymentMethod
+```
+
+---
+
+# 3. Nullable Reference Types
+
+Tất cả project phải bật:
+
+```xml
+<Nullable>enable</Nullable>
+```
+
+Ví dụ:
+
+```csharp
+string? phoneNumber;
+Customer? customer;
+```
+
+Không sử dụng toán tử ! nếu không thực sự cần thiết.
+
+---
+
+# 4. Layer Responsibilities
+
+## Controller
+
+Controller chỉ được:
+
+* Nhận request
+* Validate cơ bản
+* Gọi service
+* Trả response
+
+Controller không được:
+
+* Chứa business logic
+* Truy cập DbContext trực tiếp
+* Gọi Repository trực tiếp
+
+---
+
+## Service
+
+Service chịu trách nhiệm:
+
+* Business logic
+* Validation nghiệp vụ
+* Transaction
+* Gọi Repository
+
+Service không được:
+
+* Chứa code giao diện
+* Chứa SQL raw không cần thiết
+
+---
+
+## Repository
+
+Repository chịu trách nhiệm:
+
+* CRUD
+* Query dữ liệu
+
+Repository không được:
+
+* Chứa business logic
+* Chứa validation nghiệp vụ
+
+---
+
+# 5. DTO Convention
+
+Không trả Entity trực tiếp cho API.
+
+Luôn sử dụng DTO.
+
+Ví dụ:
+
+```csharp
+CreateOrderRequest
+CreateOrderResponse
+
+UpdateProductRequest
+UpdateProductResponse
+
+GetOrderDetailResponse
+```
+
+Không sử dụng:
+
+```csharp
+OrderDto
+ProductDto
+```
+
+trừ khi thực sự cần thiết.
+
+---
+
+# 6. Validation Convention
+
+Ưu tiên FluentValidation.
+
+Validation nghiệp vụ phải nằm ở Application Layer.
+
+Không validate nghiệp vụ trong Controller.
+
+Ví dụ:
+
+* Số lượng phải lớn hơn 0
+* Không được thanh toán đơn đã thanh toán
+
+---
+
+# 7. Mapping Convention
+
+Sử dụng AutoMapper hoặc Mapper riêng.
+
+Luôn map:
+
+```text
+Request DTO
+↓
+Entity
+
+Entity
+↓
+Response DTO
+```
+
+Không trả Entity trực tiếp ra API.
+
+---
+
+# 8. Entity Framework Core Convention
+
+## Save Changes
+
+Luôn sử dụng:
+
+```csharp
+await _dbContext.SaveChangesAsync();
+```
+
+---
+
+## Read Only Queries
+
+Luôn dùng:
+
+```csharp
+.AsNoTracking()
+```
+
+khi không cần cập nhật dữ liệu.
+
+---
+
+## Includes
+
+Chỉ Include dữ liệu thực sự cần thiết.
+
+Không eager load quá mức.
+
+---
+
+## N+1 Query
+
+Không query trong vòng lặp.
+
+Sai:
+
+```csharp
+foreach(var order in orders)
+{
+    var items = await _dbContext.OrderItems
+        .Where(x => x.OrderId == order.Id)
+        .ToListAsync();
+}
+```
+
+---
+
+## Transactions
+
+Các nghiệp vụ sau bắt buộc transaction:
+
+* Thanh toán
+* Tạo đơn hàng
+* Cập nhật tồn kho
+
+---
+
+# 9. Soft Delete Convention
+
+Không sử dụng DELETE vật lý.
+
+Các entity nghiệp vụ phải có:
+
+```csharp
+IsDeleted
+DeletedAt
+DeletedBy
+```
+
+Khi xóa:
+
+```csharp
+entity.IsDeleted = true;
+```
+
+---
+
+# 10. Logging Convention
+
+Bắt buộc sử dụng ILogger.
+
+Ví dụ:
+
+```csharp
+_logger.LogInformation();
+_logger.LogWarning();
+_logger.LogError();
+```
+
+Không sử dụng:
+
+```csharp
+Console.WriteLine();
+```
+
+---
+
+# 11. Enum Convention
+
+## Database
+
+Enum lưu dưới dạng int.
+
+Ví dụ:
+
+```csharp
+Preparing = 2
+```
+
+---
+
+## API
+
+Enum trả về dạng string.
+
+Đúng:
+
+```json
+{
+  "status": "Preparing"
+}
+```
+
+Sai:
+
+```json
+{
+  "status": 2
+}
+```
+
+---
+
+# 12. Exception Handling
+
+Không sử dụng try/catch rỗng.
+
+Sai:
+
+```csharp
+try
+{
+}
+catch
+{
+}
+```
+
+Đúng:
+
+```csharp
+try
+{
+}
+catch(Exception ex)
+{
+    _logger.LogError(ex, "Error");
+    throw;
+}
+```
+
+---
+
+# 13. Frontend Convention
+
+## HTML
+
+* Sử dụng thẻ chữ thường.
+* Sử dụng semantic HTML.
+
+Ví dụ:
+
+```html
+<header>
+<nav>
+<main>
+<section>
+```
+
+---
+
+## CSS
+
+### Naming
+
+Sử dụng kebab-case.
+
+```css
+product-card
+checkout-button
+```
+
+### Colors
+
+Chỉ sử dụng CSS Variables.
+
+Đúng:
+
+```css
+color: var(--matcha-primary);
+```
+
+Sai:
+
+```css
+color: #4c7031;
+```
+
+---
+
+## JavaScript
+
+### Variables
+
+camelCase
+
+```javascript
+selectedProductId
+```
+
+### Constants
+
+UPPER_SNAKE_CASE
+
+```javascript
+API_BASE_URL
+```
+
+### Classes
+
+PascalCase
+
+```javascript
+OrderTracker
+```
+
+---
+
+# 14. Shared JavaScript Convention
+
+Cho phép tạo các module dùng chung:
+
+```text
+wwwroot/js/shared/
+
+api-client.js
+signalr.service.js
+toast.service.js
+modal.service.js
+```
+
+Không lặp lại logic gọi API giữa các trang.
+
+---
+
+# 15. Solution Structure
+
+```text
+CafePOS.Domain
+CafePOS.Application
+CafePOS.Infrastructure
+CafePOS.API
+CafePOS.Web
+```
+
+## Domain
+
+* Entities
+* Enums
+* Domain Models
+
+## Application
+
+* Services
+* DTOs
+* Validators
+* Interfaces
+
+## Infrastructure
+
+* EF Core
+* Repositories
+* External Services
+* Migrations
+
+## API
+
+* Controllers
+* SignalR Hubs
+* Middleware
+
+## Web
+
+* MVC Controllers
+* Razor Views
+* CSS
+* JavaScript
+
+```
+
+---
+
+# 16. Testing Convention
+
+## Unit Test
+
+Bắt buộc cho:
+
+- Service
+- Business Logic
+
+## Integration Test
+
+Bắt buộc cho:
+
+- API
+- Payment Flow
+- Inventory Flow
+
+---
+
+# 17. Definition of Done
+
+Trước khi hoàn thành bất kỳ task nào:
+
+- Build thành công.
+- Không có compile error.
+- Không có warning nghiêm trọng.
+- Không có code chết.
+- Không có Console.WriteLine().
+- Không có hardcoded secret.
+- DTO được cập nhật đầy đủ.
+- Migration được tạo nếu schema thay đổi.
+- Business Rules vẫn được đảm bảo.
+- Payment Idempotency không bị phá vỡ.
+- Soft Delete vẫn hoạt động đúng.
+```
