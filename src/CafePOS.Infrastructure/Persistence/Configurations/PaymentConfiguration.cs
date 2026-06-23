@@ -34,5 +34,10 @@ public class PaymentConfiguration : IEntityTypeConfiguration<Payment>
             .WithMany()
             .HasForeignKey(p => p.CreatedByStaffId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Filtered Unique Index: only 1 completed payment per order
+        builder.HasIndex(p => p.OrderId)
+            .IsUnique()
+            .HasFilter("[Status] = 1");
     }
 }

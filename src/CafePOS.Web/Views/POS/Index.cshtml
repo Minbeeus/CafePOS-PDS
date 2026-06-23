@@ -32,6 +32,12 @@
                     <button class="toggle-btn active" id="btnDineIn" onclick="setServingType('DineIn')">Tại Quầy</button>
                     <button class="toggle-btn" id="btnTakeAway" onclick="setServingType('TakeAway')">Mang Đi</button>
                 </div>
+
+                <!-- History Shortcut Button -->
+                <button class="toggle-btn" style="border: 1px solid var(--pos-border); color: var(--coffee-beige); display: flex; align-items: center; gap: 6px; padding: 6px 12px; margin-left: 8px;" onclick="openOrderHistoryFromHeader()">
+                    <span class="material-symbols-outlined" style="font-size: 16px;">history</span>
+                    Lịch sử
+                </button>
                 
                 <!-- Shift Information -->
                 <div id="shiftInfoContainer">
@@ -418,6 +424,65 @@
         </div>
     </div>
 
+    <!-- POS Startup Selector Modal -->
+    <div class="modal-overlay" id="posStartModal">
+        <div class="modal-container" style="max-width: 440px; text-align: center; padding: 24px;">
+            <div class="modal-header" style="justify-content: center; border-bottom: none; padding-bottom: 0;">
+                <h3 class="modal-title" style="font-size: 22px; font-weight: 800; color: var(--coffee-beige);">HỆ THỐNG CAFE POS</h3>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px; margin-top: 10px;">
+                <p style="color: var(--pos-muted); font-size: 14px;">Vui lòng lựa chọn phương thức phục vụ hoặc xem lịch sử đơn hàng để bắt đầu.</p>
+                
+                <button class="btn-checkout" style="padding: 16px; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 12px;" onclick="selectServingMode('DineIn')">
+                    <span class="material-symbols-outlined" style="font-size: 24px;">local_cafe</span>
+                    <span style="font-weight: 800; letter-spacing: 0.5px;">ĂN TẠI CHỖ (TẠI QUẦY)</span>
+                </button>
+                
+                <button class="btn-checkout" style="background: linear-gradient(135deg, var(--coffee-light) 0%, var(--coffee-medium) 100%); box-shadow: 0 4px 15px rgba(100, 73, 43, 0.3); padding: 16px; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 12px;" onclick="selectServingMode('TakeAway')">
+                    <span class="material-symbols-outlined" style="font-size: 24px;">shopping_bag</span>
+                    <span style="font-weight: 800; letter-spacing: 0.5px;">MANG ĐI (TAKE AWAY)</span>
+                </button>
+                
+                <button class="btn-lookup" style="padding: 14px; font-size: 14px; border-radius: var(--border-radius-lg); font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 6px;" onclick="openOrderHistory()">
+                    <span class="material-symbols-outlined" style="font-size: 20px;">history</span>
+                    <span>XEM LỊCH SỬ ĐƠN HÀNG</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order History Modal -->
+    <div class="modal-overlay" id="historyModal">
+        <div class="modal-container" style="max-width: 800px; height: 80vh; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <h3 class="modal-title">📜 Lịch Sử Đơn Hàng Hôm Nay</h3>
+                <button class="modal-close" onclick="closeHistoryModal()">✕</button>
+            </div>
+            <div class="modal-body" style="flex-grow: 1; overflow-y: auto; padding: 20px;">
+                <div class="table-responsive">
+                    <table class="table" style="color: var(--bg-milk); font-size: 14px; width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid var(--pos-border); text-align: left; color: var(--coffee-beige);">
+                                <th style="padding: 12px 8px;">Mã Đơn</th>
+                                <th style="padding: 12px 8px;">Thời Gian</th>
+                                <th style="padding: 12px 8px;">Phục Vụ</th>
+                                <th style="padding: 12px 8px;">Tổng Tiền</th>
+                                <th style="padding: 12px 8px;">Trạng Thái</th>
+                                <th style="padding: 12px 8px;">Hành Động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyOrderTableBody">
+                            <!-- Rows will be dynamically loaded -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content: flex-end; border-top: 1px solid var(--pos-border);">
+                <button class="btn-secondary" onclick="closeHistoryModal()">QUAY LẠI</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Supervisor Auth PIN Modal -->
     <div class="modal-overlay" id="supervisorModal">
         <div class="modal-container" style="max-width: 380px;">
@@ -530,6 +595,9 @@
             // Fetch base data
             await fetchCategories();
             await fetchProducts();
+
+            // Show startup serving mode selection modal
+            openModal("posStartModal");
         });
 
         // Running Clock
@@ -550,8 +618,8 @@
                 });
                 const result = await res.json();
                 
-                if (res.ok && result.success) {
-                    activeShift = result.data;
+                if (res.ok) {
+                    activeShift = result;
                     renderShiftControls();
                 } else {
                     showToast("Lỗi khi kiểm tra ca làm việc.", "error");
@@ -605,7 +673,7 @@
                 });
                 const result = await res.json();
 
-                if (res.ok && result.success) {
+                if (res.ok) {
                     showToast("Mở ca thành công!", "success");
                     closeModal("openShiftModal");
                     await checkShiftStatus();
@@ -653,7 +721,7 @@
                 });
                 const result = await res.json();
 
-                if (res.ok && result.success) {
+                if (res.ok) {
                     showToast("Đóng ca và bàn giao thành công!", "success");
                     closeModal("closeShiftModal");
                     await checkShiftStatus();
@@ -671,8 +739,8 @@
             try {
                 const res = await fetch(`${API_URL}/products/categories`);
                 const result = await res.json();
-                if (res.ok && result.success) {
-                    categories = result.data.filter(c => c.isActive);
+                if (res.ok) {
+                    categories = result.filter(c => c.isActive);
                     renderCategories();
                 }
             } catch (err) {
@@ -683,10 +751,10 @@
         // Fetch Products
         async function fetchProducts() {
             try {
-                const res = await fetch(`${API_URL}/products`);
+                const res = await fetch(`${API_URL}/products?pageSize=1000`);
                 const result = await res.json();
-                if (res.ok && result.success) {
-                    products = result.data;
+                if (res.ok) {
+                    products = result.items;
                     renderProducts();
                 }
             } catch (err) {
@@ -1049,11 +1117,14 @@
         // Render Cart Details
         function renderCart() {
             const list = document.getElementById("cartItemsList");
-            const emptyState = document.getElementById("cartEmptyState");
 
             if (cart.length === 0) {
-                list.innerHTML = "";
-                list.appendChild(emptyState);
+                list.innerHTML = `
+                    <div class="cart-empty-state" id="cartEmptyState">
+                        <span class="material-symbols-outlined cart-empty-icon">shopping_cart</span>
+                        <p>Giỏ hàng trống. Chọn sản phẩm để bắt đầu.</p>
+                    </div>
+                `;
                 calculateTotals();
                 return;
             }
@@ -1172,8 +1243,8 @@
                 });
                 const result = await res.json();
 
-                if (res.ok && result.success) {
-                    activeCustomer = result.data;
+                if (res.ok) {
+                    activeCustomer = result;
                     renderCustomerInfo();
                     calculateTotals();
                     showToast(`Đã nhận diện thành viên: ${activeCustomer.fullName}`, "success");
@@ -1321,12 +1392,12 @@
 
                 const result = await res.json();
 
-                if (res.ok && result.success) {
-                    if (result.data.isValid) {
+                if (res.ok) {
+                    if (result.isValid) {
                         manualDiscount = {
                             percent: discountPercent,
                             approverCode: supervisorPin,
-                            approverNote: notes || `Phê duyệt bởi ${result.data.staffName} (${result.data.role})`
+                            approverNote: notes || `Phê duyệt bởi ${result.staffName} (${result.role})`
                         };
                         
                         document.getElementById("manualDiscountDisplay").innerText = `${discountPercent}%`;
@@ -1334,7 +1405,7 @@
                         showToast(`Giảm giá ${discountPercent}% đã được áp dụng.`, "success");
                         closeModal("supervisorModal");
                     } else {
-                        showToast(result.data.message || "Mã xác thực không hợp lệ.", "error");
+                        showToast(result.message || "Mã xác thực không hợp lệ.", "error");
                         clearPin();
                     }
                 } else {
@@ -1401,8 +1472,8 @@
 
                 const result = await res.json();
 
-                if (res.ok && result.success) {
-                    activeDraftOrder = result.data;
+                if (res.ok) {
+                    activeDraftOrder = result;
                     openCheckoutModal();
                 } else {
                     showToast(result.message || "Không thể tạo đơn hàng nháp.", "error");
@@ -1428,13 +1499,15 @@
             openModal("checkoutModal");
         }
 
-        function togglePayMethod(method) {
+        async function togglePayMethod(method) {
             const cashBox = document.getElementById("cashDetailsBox");
             const transferBox = document.getElementById("transferDetailsBox");
             const mixedBox = document.getElementById("mixedDetailsBox");
 
             const cashReceivedRow = document.getElementById("checkCashReceivedRow");
             const changeRow = document.getElementById("checkChangeRow");
+
+            const token = localStorage.getItem("token");
 
             if (method === "Cash") {
                 cashBox.classList.remove("d-none");
@@ -1456,9 +1529,15 @@
                 document.getElementById("qrAmountDisplay").innerText = formatVND(amount);
                 document.getElementById("qrContentDisplay").innerText = code;
                 
-                // Use quick qr server with VietQR layout data link
-                const qrData = encodeURIComponent(`https://vietqr.me/api/qr/MBBank/2302888888/${amount}/${code}`);
-                document.getElementById("vietqrImage").src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${qrData}`;
+                try {
+                    const qres = await fetch(`${API_URL}/orders/${activeDraftOrder.id}/vietqr?amount=${amount}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const qr = await qres.json();
+                    document.getElementById("vietqrImage").src = qr.qrUrl;
+                } catch (err) {
+                    console.error("Lỗi khi tải mã VietQR", err);
+                }
             } else { // Mixed
                 cashBox.classList.add("d-none");
                 transferBox.classList.remove("d-none");
@@ -1473,8 +1552,16 @@
                 // QR updates
                 document.getElementById("qrAmountDisplay").innerText = formatVND(activeDraftOrder.totalAmount);
                 document.getElementById("qrContentDisplay").innerText = activeDraftOrder.orderCode;
-                const qrData = encodeURIComponent(`https://vietqr.me/api/qr/MBBank/2302888888/${activeDraftOrder.totalAmount}/${activeDraftOrder.orderCode}`);
-                document.getElementById("vietqrImage").src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${qrData}`;
+                
+                try {
+                    const qres = await fetch(`${API_URL}/orders/${activeDraftOrder.id}/vietqr?amount=${activeDraftOrder.totalAmount}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const qr = await qres.json();
+                    document.getElementById("vietqrImage").src = qr.qrUrl;
+                } catch (err) {
+                    console.error("Lỗi khi tải mã VietQR", err);
+                }
             }
         }
 
@@ -1504,7 +1591,7 @@
         }
 
         // Mixed calculations
-        function onMixedAmountsInput() {
+        async function onMixedAmountsInput() {
             const total = activeDraftOrder.totalAmount;
             const cashInput = document.getElementById("mixedCashInput");
             const transferInput = document.getElementById("mixedTransferInput");
@@ -1516,9 +1603,16 @@
             document.getElementById("qrAmountDisplay").innerText = formatVND(transfer);
 
             // Re-generate QR for the transfer portion
-            const code = activeDraftOrder.orderCode;
-            const qrData = encodeURIComponent(`https://vietqr.me/api/qr/MBBank/2302888888/${transfer}/${code}`);
-            document.getElementById("vietqrImage").src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${qrData}`;
+            const token = localStorage.getItem("token");
+            try {
+                const qres = await fetch(`${API_URL}/orders/${activeDraftOrder.id}/vietqr?amount=${transfer}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const qr = await qres.json();
+                document.getElementById("vietqrImage").src = qr.qrUrl;
+            } catch (err) {
+                console.error("Lỗi khi tải mã VietQR", err);
+            }
         }
 
         // Complete Checkout payment
@@ -1568,7 +1662,7 @@
 
                 const result = await res.json();
 
-                if (res.ok && result.success) {
+                if (res.ok) {
                     showToast("Thanh toán thành công!", "success");
                     
                     // Render Receipt info
@@ -1598,6 +1692,152 @@
             servingType = type;
             document.getElementById("btnDineIn").classList.toggle("active", type === "DineIn");
             document.getElementById("btnTakeAway").classList.toggle("active", type === "TakeAway");
+        }
+
+        // POS Startup serving mode and history actions
+        let historyOpenedFromStart = false;
+
+        function selectServingMode(type) {
+            setServingType(type);
+            closeModal("posStartModal");
+        }
+
+        async function openOrderHistory() {
+            historyOpenedFromStart = true;
+            closeModal("posStartModal");
+            openModal("historyModal");
+            await loadOrderHistory();
+        }
+
+        function openOrderHistoryFromHeader() {
+            historyOpenedFromStart = false;
+            openModal("historyModal");
+            loadOrderHistory();
+        }
+
+        function closeHistoryModal() {
+            closeModal("historyModal");
+            if (historyOpenedFromStart) {
+                openModal("posStartModal");
+            }
+        }
+
+        async function loadOrderHistory() {
+            const tableBody = document.getElementById("historyOrderTableBody");
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 20px; color: var(--pos-muted);">
+                        Đang tải danh sách đơn hàng...
+                    </td>
+                </tr>
+            `;
+
+            const token = localStorage.getItem("token");
+            try {
+                const res = await fetch(`${API_URL}/orders?date=today&pageSize=50`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const result = await res.json();
+
+                if (res.ok) {
+                    const items = result.items || [];
+                    if (items.length === 0) {
+                        tableBody.innerHTML = `
+                            <tr>
+                                <td colspan="6" style="text-align: center; padding: 20px; color: var(--pos-muted);">
+                                    Không có đơn hàng nào trong hôm nay.
+                                </td>
+                            </tr>
+                        `;
+                        return;
+                    }
+
+                    tableBody.innerHTML = "";
+                    items.forEach(order => {
+                        const date = new Date(order.createdAt);
+                        const timeStr = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                        const servingStr = order.type === 'DineIn' ? 'Tại quầy' : 'Mang đi';
+                        const totalStr = formatVND(order.totalAmount);
+                        
+                        let statusBadge = "";
+                        if (order.status === "Completed") {
+                            statusBadge = `<span class="badge bg-success" style="font-size:11px; padding: 4px 8px; border-radius: 12px; color: white;">Hoàn thành</span>`;
+                        } else if (order.status === "Preparing") {
+                            statusBadge = `<span class="badge bg-warning text-dark" style="font-size:11px; padding: 4px 8px; border-radius: 12px;">Đang chuẩn bị</span>`;
+                        } else if (order.status === "Confirmed") {
+                            statusBadge = `<span class="badge bg-info text-dark" style="font-size:11px; padding: 4px 8px; border-radius: 12px;">Đã xác nhận</span>`;
+                        } else if (order.status === "Cancelled") {
+                            statusBadge = `<span class="badge bg-danger" style="font-size:11px; padding: 4px 8px; border-radius: 12px; color: white;">Đã hủy</span>`;
+                        } else {
+                            statusBadge = `<span class="badge bg-secondary" style="font-size:11px; padding: 4px 8px; border-radius: 12px; color: white;">${order.status}</span>`;
+                        }
+
+                        const row = document.createElement("tr");
+                        row.style.borderBottom = "1px solid var(--pos-border)";
+                        row.innerHTML = `
+                            <td style="padding: 12px 8px; font-weight: bold; color: var(--coffee-beige);">${order.orderCode.substring(order.orderCode.length - 6)}</td>
+                            <td style="padding: 12px 8px;">${timeStr}</td>
+                            <td style="padding: 12px 8px;">${servingStr}</td>
+                            <td style="padding: 12px 8px; font-weight: bold;">${totalStr}</td>
+                            <td style="padding: 12px 8px;">${statusBadge}</td>
+                            <td style="padding: 12px 8px;">
+                                <button class="btn-trigger-discount" onclick="viewOrderDetailsInHistory(${order.id})">Chi tiết</button>
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                } else {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 20px; color: #ff6b57;">
+                                Lỗi khi tải danh sách: ${result.message || "Lỗi máy chủ"}
+                            </td>
+                        </tr>
+                    `;
+                }
+            } catch (err) {
+                console.error(err);
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 20px; color: #ff6b57;">
+                            Lỗi kết nối máy chủ khi tải đơn hàng.
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        async function viewOrderDetailsInHistory(orderId) {
+            const token = localStorage.getItem("token");
+            try {
+                const res = await fetch(`${API_URL}/orders/${orderId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const order = await res.json();
+                if (res.ok) {
+                    let itemsSummary = order.items.map(item => {
+                        let opts = [];
+                        if (item.sizeLabel && item.sizeLabel !== 'Regular' && item.sizeLabel !== 'Normal') opts.push(`Size ${item.sizeLabel}`);
+                        if (item.sugarLevel && item.sugarLevel !== '100' && item.sugarLevel !== 'NA') opts.push(`Đường ${item.sugarLevel}%`);
+                        if (item.iceLevel && item.iceLevel !== '100' && item.iceLevel !== 'NA') opts.push(`Đá ${item.iceLevel}%`);
+                        if (item.toppings && item.toppings.length > 0) opts.push(`Topping: ${item.toppings.map(t => t.toppingName).join(", ")}`);
+                        
+                        return `- ${item.quantity}x ${item.productName} [${opts.join(", ")}] : ${formatVND(item.itemTotal)}`;
+                    }).join("\n");
+
+                    alert(`ĐƠN HÀNG #${order.orderCode.substring(order.orderCode.length - 6)}\n` +
+                          `Thời gian: ${new Date(order.createdAt).toLocaleString('vi-VN')}\n` +
+                          `Trạng thái: ${order.status}\n` +
+                          `Thanh toán: ${order.paymentStatus} (${order.paymentMethod})\n\n` +
+                          `Danh sách món:\n${itemsSummary}\n\n` +
+                          `Tổng tiền: ${formatVND(order.totalAmount)}`);
+                } else {
+                    alert("Không thể tải thông tin chi tiết đơn hàng.");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Lỗi kết nối khi tải chi tiết đơn hàng.");
+            }
         }
 
         // Translate user roles

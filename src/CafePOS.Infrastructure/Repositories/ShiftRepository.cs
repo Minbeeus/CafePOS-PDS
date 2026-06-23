@@ -20,4 +20,29 @@ public class ShiftRepository : IShiftRepository
     {
         return await _context.Shifts.FirstOrDefaultAsync(s => s.Status == "Open");
     }
+
+    public async Task<Shift?> GetActiveShiftWithOpenedByAsync()
+    {
+        return await _context.Shifts
+            .Include(s => s.OpenedBy)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Status == "Open");
+    }
+
+    public async Task<Shift?> GetByIdAsync(int id)
+    {
+        return await _context.Shifts.FindAsync(id);
+    }
+
+    public async Task AddAsync(Shift shift)
+    {
+        _context.Shifts.Add(shift);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task UpdateAsync(Shift shift)
+    {
+        _context.Shifts.Update(shift);
+        await _context.SaveChangesAsync();
+    }
 }

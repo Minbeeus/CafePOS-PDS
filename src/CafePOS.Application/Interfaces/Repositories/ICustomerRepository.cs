@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using CafePOS.Domain.Entities;
 
@@ -11,4 +12,5 @@ public interface ICustomerRepository
     Task<Customer?> GetByGoogleIdAsync(string googleId);
     Task AddAsync(Customer customer);
     Task UpdateAsync(Customer customer);
+    Task<(List<Customer> items, int totalItems)> GetPagedCustomersAsync(int page, int pageSize, string? keyword);
 }

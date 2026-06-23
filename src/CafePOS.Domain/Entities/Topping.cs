@@ -8,5 +8,8 @@ public class Topping
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
     public ICollection<Product> Products { get; set; } = new List<Product>();
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public int? DeletedBy { get; set; }
 }
 

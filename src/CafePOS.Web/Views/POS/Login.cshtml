@@ -301,8 +301,8 @@
 
                 const result = await response.json();
 
-                if (response.ok && result.success) {
-                    const data = result.data;
+                if (response.ok) {
+                    const data = result;
                     localStorage.setItem("token", data.token);
                     localStorage.setItem("staff", JSON.stringify(data.staff));
                     localStorage.setItem("loginMode", "POS");

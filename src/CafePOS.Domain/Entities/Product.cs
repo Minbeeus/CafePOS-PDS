@@ -16,5 +16,8 @@ public class Product
     public DateTime CreatedAt { get; set; }
     public ICollection<ProductSize> Sizes { get; set; } = new List<ProductSize>();
     public ICollection<Topping> Toppings { get; set; } = new List<Topping>();
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public int? DeletedBy { get; set; }
 }
 

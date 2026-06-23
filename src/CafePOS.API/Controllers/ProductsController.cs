@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using CafePOS.Infrastructure.Data;
 using CafePOS.Domain.Entities;
+using CafePOS.Application.Interfaces.Repositories;
 using System.Threading.Tasks;
 using System.Linq;
 using System.IO;
@@ -16,69 +15,78 @@ namespace CafePOS.API.Controllers;
 [Route("api/v1/[controller]")]
 public class ProductsController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly IProductRepository _productRepository;
 
-    public ProductsController(AppDbContext context)
+    public ProductsController(IProductRepository productRepository)
     {
-        _context = context;
+        _productRepository = productRepository;
     }
 
     // ========================================================
-    // I. PRODUCTS CRUD
+    // I. PRODUCTS CRUD & PAGINATION
     // ========================================================
 
     [HttpGet]
-    public async Task<IActionResult> GetProducts()
+    public async Task<IActionResult> GetProducts(
+        [FromQuery] int? categoryId = null,
+        [FromQuery] string? status = null,
+        [FromQuery] string? keyword = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
     {
-        var products = await _context.Products
-            .Include(p => p.Category)
-            .Include(p => p.Sizes)
-            .Include(p => p.Toppings)
-            .OrderBy(p => p.Name)
-            .Select(p => new
-            {
-                p.Id,
-                p.CategoryId,
-                p.Name,
-                p.Description,
-                p.BasePrice,
-                p.ImageUrl,
-                p.Status,
-                p.HasSizeOption,
-                p.HasSugarOption,
-                p.HasIceOption,
-                CategoryName = p.Category != null ? p.Category.Name : "Chưa phân loại",
-                Sizes = p.Sizes.Select(s => new
-                {
-                    s.Id,
-                    s.SizeLabel,
-                    s.PriceModifier,
-                    s.IsDefault
-                }).ToList(),
-                Toppings = p.Toppings.Select(t => new
-                {
-                    t.Id,
-                    t.Name,
-                    t.Price
-                }).ToList()
-            })
-            .ToListAsync();
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 10;
+        if (pageSize > 1000) pageSize = 1000;
 
-        return Ok(new { success = true, data = products });
+        var (products, totalItems) = await _productRepository.GetPagedProductsAsync(page, pageSize, categoryId, status, keyword);
+        var totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+
+        var mapped = products.Select(p => new
+        {
+            p.Id,
+            p.CategoryId,
+            p.Name,
+            p.Description,
+            p.BasePrice,
+            p.ImageUrl,
+            p.Status,
+            p.HasSizeOption,
+            p.HasSugarOption,
+            p.HasIceOption,
+            CategoryName = p.Category != null ? p.Category.Name : "Chưa phân loại",
+            Sizes = p.Sizes.Select(s => new
+            {
+                s.Id,
+                s.SizeLabel,
+                s.PriceModifier,
+                s.IsDefault
+            }).ToList(),
+            Toppings = p.Toppings.Select(t => new
+            {
+                t.Id,
+                t.Name,
+                t.Price
+            }).ToList()
+        }).ToList();
+
+        return Ok(new
+        {
+            items = mapped,
+            page,
+            pageSize,
+            totalItems,
+            totalPages
+        });
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetProductById(int id)
     {
-        var p = await _context.Products
-            .Include(p => p.Category)
-            .Include(p => p.Sizes)
-            .Include(p => p.Toppings)
-            .FirstOrDefaultAsync(p => p.Id == id);
+        var p = await _productRepository.GetWithSizesAndToppingsByIdAsync(id);
 
         if (p == null)
         {
-            return NotFound(new { success = false, message = "Không tìm thấy sản phẩm." });
+            return NotFound(new { message = "Không tìm thấy sản phẩm." });
         }
 
         var result = new
@@ -109,7 +117,7 @@ public class ProductsController : ControllerBase
             }).ToList()
         };
 
-        return Ok(new { success = true, data = result });
+        return Ok(result);
     }
 
     [HttpPost]
@@ -118,7 +126,7 @@ public class ProductsController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return BadRequest(new { success = false, message = "Tên sản phẩm không được để trống." });
+            return BadRequest(new { message = "Tên sản phẩm không được để trống." });
         }
 
         var product = new Product
@@ -137,65 +145,56 @@ public class ProductsController : ControllerBase
 
         if (request.ToppingIds != null && request.ToppingIds.Any())
         {
-            var toppings = await _context.Toppings
-                .Where(t => request.ToppingIds.Contains(t.Id))
-                .ToListAsync();
+            var toppings = new List<Topping>();
+            foreach (var id in request.ToppingIds)
+            {
+                var topping = await _productRepository.GetToppingByIdAsync(id);
+                if (topping != null) toppings.Add(topping);
+            }
             product.Toppings = toppings;
         }
 
-        _context.Products.Add(product);
-        await _context.SaveChangesAsync(); // Generates productId
-
-        // Add sizes
         if (request.HasSizeOption && request.Sizes != null && request.Sizes.Any())
         {
             foreach (var sizeReq in request.Sizes)
             {
-                var size = new ProductSize
+                product.Sizes.Add(new ProductSize
                 {
-                    ProductId = product.Id,
                     SizeLabel = sizeReq.SizeLabel,
                     PriceModifier = sizeReq.PriceModifier,
                     IsDefault = sizeReq.IsDefault
-                };
-                _context.ProductSizes.Add(size);
+                });
             }
         }
         else
         {
-            // Default size if size option is disabled
-            var defaultSize = new ProductSize
+            product.Sizes.Add(new ProductSize
             {
-                ProductId = product.Id,
                 SizeLabel = "Regular",
                 PriceModifier = 0,
                 IsDefault = true
-            };
-            _context.ProductSizes.Add(defaultSize);
+            });
         }
 
-        await _context.SaveChangesAsync();
+        await _productRepository.AddAsync(product);
 
-        return Ok(new { success = true, data = product, message = "Tạo sản phẩm thành công" });
+        return CreatedAtAction(nameof(GetProductById), new { id = product.Id }, product);
     }
 
     [HttpPut("{id}")]
     [Authorize(Roles = "Owner")]
     public async Task<IActionResult> UpdateProduct(int id, [FromBody] ProductCreateRequest request)
     {
-        var product = await _context.Products
-            .Include(p => p.Sizes)
-            .Include(p => p.Toppings)
-            .FirstOrDefaultAsync(p => p.Id == id);
+        var product = await _productRepository.GetWithSizesAndToppingsByIdAsync(id);
 
         if (product == null)
         {
-            return NotFound(new { success = false, message = "Không tìm thấy sản phẩm." });
+            return NotFound(new { message = "Không tìm thấy sản phẩm." });
         }
 
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return BadRequest(new { success = false, message = "Tên sản phẩm không được để trống." });
+            return BadRequest(new { message = "Tên sản phẩm không được để trống." });
         }
 
         product.CategoryId = request.CategoryId;
@@ -208,86 +207,84 @@ public class ProductsController : ControllerBase
         product.HasSugarOption = request.HasSugarOption;
         product.HasIceOption = request.HasIceOption;
 
-        // Clear existing sizes
-        _context.ProductSizes.RemoveRange(product.Sizes);
-
-        // Add updated sizes
+        var newSizes = new List<ProductSize>();
         if (request.HasSizeOption && request.Sizes != null && request.Sizes.Any())
         {
             foreach (var sizeReq in request.Sizes)
             {
-                var size = new ProductSize
+                newSizes.Add(new ProductSize
                 {
                     ProductId = product.Id,
                     SizeLabel = sizeReq.SizeLabel,
                     PriceModifier = sizeReq.PriceModifier,
                     IsDefault = sizeReq.IsDefault
-                };
-                _context.ProductSizes.Add(size);
+                });
             }
         }
         else
         {
-            var defaultSize = new ProductSize
+            newSizes.Add(new ProductSize
             {
                 ProductId = product.Id,
                 SizeLabel = "Regular",
                 PriceModifier = 0,
                 IsDefault = true
-            };
-            _context.ProductSizes.Add(defaultSize);
+            });
         }
 
-        // Update toppings
-        product.Toppings.Clear();
+        var newToppings = new List<Topping>();
         if (request.ToppingIds != null && request.ToppingIds.Any())
         {
-            var toppings = await _context.Toppings
-                .Where(t => request.ToppingIds.Contains(t.Id))
-                .ToListAsync();
-            product.Toppings = toppings;
+            foreach (var toppingId in request.ToppingIds)
+            {
+                var topping = await _productRepository.GetToppingByIdAsync(toppingId);
+                if (topping != null) newToppings.Add(topping);
+            }
         }
 
-        await _context.SaveChangesAsync();
+        await _productRepository.UpdateProductWithDetailsAsync(product, newSizes, newToppings);
 
-        return Ok(new { success = true, data = product, message = "Cập nhật sản phẩm thành công" });
+        return Ok(product);
     }
 
     [HttpDelete("{id}")]
     [Authorize(Roles = "Owner")]
     public async Task<IActionResult> DeleteProduct(int id)
     {
-        var product = await _context.Products.FindAsync(id);
+        var product = await _productRepository.GetByIdAsync(id);
         if (product == null)
         {
-            return NotFound(new { success = false, message = "Không tìm thấy sản phẩm." });
+            return NotFound(new { message = "Không tìm thấy sản phẩm." });
         }
 
-        _context.Products.Remove(product);
-        await _context.SaveChangesAsync();
+        var staffId = GetCurrentStaffId();
+        product.IsDeleted = true;
+        product.DeletedAt = DateTime.UtcNow;
+        product.DeletedBy = staffId;
+        await _productRepository.UpdateAsync(product);
 
-        return Ok(new { success = true, message = "Xóa sản phẩm thành công" });
+        return NoContent();
     }
 
     [HttpPatch("{id}/status")]
     [Authorize(Roles = "Owner,ShiftLeader")]
     public async Task<IActionResult> UpdateProductStatus(int id, [FromBody] ProductStatusUpdateRequest request)
     {
-        var product = await _context.Products.FindAsync(id);
+        var product = await _productRepository.GetByIdAsync(id);
         if (product == null)
         {
-            return NotFound(new { success = false, message = "Không tìm thấy sản phẩm." });
+            return NotFound(new { message = "Không tìm thấy sản phẩm." });
         }
 
         if (string.IsNullOrWhiteSpace(request.Status))
         {
-            return BadRequest(new { success = false, message = "Trạng thái không được để trống." });
+            return BadRequest(new { message = "Trạng thái không được để trống." });
         }
 
         product.Status = request.Status;
-        await _context.SaveChangesAsync();
+        await _productRepository.UpdateAsync(product);
 
-        return Ok(new { success = true, data = product, message = "Cập nhật trạng thái thành công" });
+        return Ok(product);
     }
 
     [HttpPost("upload-image")]
@@ -296,14 +293,12 @@ public class ProductsController : ControllerBase
     {
         if (file == null || file.Length == 0)
         {
-            return BadRequest(new { success = false, message = "Không tìm thấy file tải lên." });
+            return BadRequest(new { message = "Không tìm thấy file tải lên." });
         }
 
-        // Try to resolve path to CafePOS.Web wwwroot
         var webRoot = Path.Combine(Directory.GetCurrentDirectory(), "..", "CafePOS.Web", "wwwroot");
         if (!Directory.Exists(webRoot))
         {
-            // Fallback to local wwwroot if executing directly inside Web folder
             webRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
         }
         
@@ -323,7 +318,7 @@ public class ProductsController : ControllerBase
         }
 
         var relativePath = $"/images/products/{filename}";
-        return Ok(new { success = true, data = relativePath, message = "Tải ảnh lên thành công." });
+        return Ok(new { imageUrl = relativePath });
     }
 
     // ========================================================
@@ -333,21 +328,18 @@ public class ProductsController : ControllerBase
     [HttpGet("categories")]
     public async Task<IActionResult> GetCategories()
     {
-        var categories = await _context.Categories
-            .Include(c => c.Products)
-            .OrderBy(c => c.DisplayOrder)
-            .Select(c => new
-            {
-                c.Id,
-                c.Name,
-                c.DisplayStation,
-                c.DisplayOrder,
-                c.IsActive,
-                ProductsCount = c.Products.Count
-            })
-            .ToListAsync();
+        var categories = await _productRepository.GetCategoriesAsync();
+        var mapped = categories.Select(c => new
+        {
+            c.Id,
+            c.Name,
+            c.DisplayStation,
+            c.DisplayOrder,
+            c.IsActive,
+            ProductsCount = c.Products.Count(p => !p.IsDeleted)
+        }).ToList();
 
-        return Ok(new { success = true, data = categories });
+        return Ok(mapped);
     }
 
     [HttpPost("categories")]
@@ -356,11 +348,12 @@ public class ProductsController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return BadRequest(new { success = false, message = "Tên danh mục không được để trống." });
+            return BadRequest(new { message = "Tên danh mục không được để trống." });
         }
 
-        var displayOrder = await _context.Categories.AnyAsync()
-            ? await _context.Categories.MaxAsync(c => c.DisplayOrder) + 1
+        var categories = await _productRepository.GetCategoriesAsync();
+        var displayOrder = categories.Any()
+            ? categories.Max(c => c.DisplayOrder) + 1
             : 1;
 
         var category = new Category
@@ -371,25 +364,24 @@ public class ProductsController : ControllerBase
             IsActive = request.IsActive ?? true
         };
 
-        _context.Categories.Add(category);
-        await _context.SaveChangesAsync();
+        await _productRepository.AddCategoryAsync(category);
 
-        return Ok(new { success = true, data = category, message = "Tạo danh mục thành công" });
+        return Created(string.Empty, category);
     }
 
     [HttpPut("categories/{id}")]
     [Authorize(Roles = "Owner")]
     public async Task<IActionResult> UpdateCategory(int id, [FromBody] CategoryRequest request)
     {
-        var category = await _context.Categories.FindAsync(id);
+        var category = await _productRepository.GetCategoryByIdAsync(id);
         if (category == null)
         {
-            return NotFound(new { success = false, message = "Không tìm thấy danh mục." });
+            return NotFound(new { message = "Không tìm thấy danh mục." });
         }
 
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return BadRequest(new { success = false, message = "Tên danh mục không được để trống." });
+            return BadRequest(new { message = "Tên danh mục không được để trống." });
         }
 
         category.Name = request.Name;
@@ -397,33 +389,33 @@ public class ProductsController : ControllerBase
         category.DisplayOrder = request.DisplayOrder ?? category.DisplayOrder;
         category.IsActive = request.IsActive ?? category.IsActive;
 
-        await _context.SaveChangesAsync();
+        await _productRepository.UpdateCategoryAsync(category);
 
-        return Ok(new { success = true, data = category, message = "Cập nhật danh mục thành công" });
+        return Ok(category);
     }
 
     [HttpDelete("categories/{id}")]
     [Authorize(Roles = "Owner")]
     public async Task<IActionResult> DeleteCategory(int id)
     {
-        var category = await _context.Categories
-            .Include(c => c.Products)
-            .FirstOrDefaultAsync(c => c.Id == id);
-
+        var category = await _productRepository.GetCategoryByIdAsync(id);
         if (category == null)
         {
-            return NotFound(new { success = false, message = "Không tìm thấy danh mục." });
+            return NotFound(new { message = "Không tìm thấy danh mục." });
         }
 
-        if (category.Products.Any())
+        if (category.Products.Any(p => !p.IsDeleted))
         {
-            return BadRequest(new { success = false, message = "Không thể xóa danh mục đã chứa sản phẩm." });
+            return BadRequest(new { message = "Không thể xóa danh mục đã chứa sản phẩm." });
         }
 
-        _context.Categories.Remove(category);
-        await _context.SaveChangesAsync();
+        var staffId = GetCurrentStaffId();
+        category.IsDeleted = true;
+        category.DeletedAt = DateTime.UtcNow;
+        category.DeletedBy = staffId;
+        await _productRepository.UpdateCategoryAsync(category);
 
-        return Ok(new { success = true, message = "Xóa danh mục thành công" });
+        return NoContent();
     }
 
     // ========================================================
@@ -433,11 +425,8 @@ public class ProductsController : ControllerBase
     [HttpGet("toppings")]
     public async Task<IActionResult> GetToppings()
     {
-        var toppings = await _context.Toppings
-            .OrderBy(t => t.Name)
-            .ToListAsync();
-
-        return Ok(new { success = true, data = toppings });
+        var toppings = await _productRepository.GetToppingsAsync();
+        return Ok(toppings);
     }
 
     [HttpPost("toppings")]
@@ -446,7 +435,7 @@ public class ProductsController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return BadRequest(new { success = false, message = "Tên topping không được để trống." });
+            return BadRequest(new { message = "Tên topping không được để trống." });
         }
 
         var topping = new Topping
@@ -457,50 +446,64 @@ public class ProductsController : ControllerBase
             CreatedAt = DateTime.UtcNow
         };
 
-        _context.Toppings.Add(topping);
-        await _context.SaveChangesAsync();
+        await _productRepository.AddToppingAsync(topping);
 
-        return Ok(new { success = true, data = topping, message = "Tạo topping thành công" });
+        return Created(string.Empty, topping);
     }
 
     [HttpPut("toppings/{id}")]
     [Authorize(Roles = "Owner")]
     public async Task<IActionResult> UpdateTopping(int id, [FromBody] ToppingRequest request)
     {
-        var topping = await _context.Toppings.FindAsync(id);
+        var topping = await _productRepository.GetToppingByIdAsync(id);
         if (topping == null)
         {
-            return NotFound(new { success = false, message = "Không tìm thấy topping." });
+            return NotFound(new { message = "Không tìm thấy topping." });
         }
 
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return BadRequest(new { success = false, message = "Tên topping không được để trống." });
+            return BadRequest(new { message = "Tên topping không được để trống." });
         }
 
         topping.Name = request.Name;
         topping.Price = request.Price;
         topping.IsActive = request.IsActive ?? topping.IsActive;
 
-        await _context.SaveChangesAsync();
+        await _productRepository.UpdateToppingAsync(topping);
 
-        return Ok(new { success = true, data = topping, message = "Cập nhật topping thành công" });
+        return Ok(topping);
     }
 
     [HttpDelete("toppings/{id}")]
     [Authorize(Roles = "Owner")]
     public async Task<IActionResult> DeleteTopping(int id)
     {
-        var topping = await _context.Toppings.FindAsync(id);
+        var topping = await _productRepository.GetToppingByIdAsync(id);
         if (topping == null)
         {
-            return NotFound(new { success = false, message = "Không tìm thấy topping." });
+            return NotFound(new { message = "Không tìm thấy topping." });
         }
 
-        _context.Toppings.Remove(topping);
-        await _context.SaveChangesAsync();
+        var staffId = GetCurrentStaffId();
+        topping.IsDeleted = true;
+        topping.DeletedAt = DateTime.UtcNow;
+        topping.DeletedBy = staffId;
+        await _productRepository.UpdateToppingAsync(topping);
 
-        return Ok(new { success = true, message = "Xóa topping thành công" });
+        return NoContent();
+    }
+
+    private int GetCurrentStaffId()
+    {
+        var subClaim = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
+            ?? User?.FindFirst("sub")?.Value;
+        
+        if (int.TryParse(subClaim, out int staffId))
+        {
+            return staffId;
+        }
+        return 0;
     }
 }
 

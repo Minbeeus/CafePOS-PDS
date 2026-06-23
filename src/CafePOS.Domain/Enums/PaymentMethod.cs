@@ -4,5 +4,6 @@ public enum PaymentMethod
 {
     Cash,
     VietQr,
-    Card
+    Card,
+    Mixed
 }

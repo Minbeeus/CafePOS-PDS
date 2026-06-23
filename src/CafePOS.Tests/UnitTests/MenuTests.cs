@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CafePOS.API.Controllers;
 using CafePOS.Domain.Entities;
 using CafePOS.Infrastructure.Data;
+using CafePOS.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -25,7 +26,7 @@ public class MenuTests : IDisposable
 
         _context = new AppDbContext(options);
         _context.Database.EnsureCreated();
-        _controller = new ProductsController(_context);
+        _controller = new ProductsController(new ProductRepository(_context));
     }
 
     public void Dispose()
@@ -55,8 +56,7 @@ public class MenuTests : IDisposable
         
         var json = JsonSerializer.Serialize(okResult.Value);
         using var doc = JsonDocument.Parse(json);
-        var data = doc.RootElement.GetProperty("data");
-        Assert.Equal(2, data.GetArrayLength());
+        Assert.Equal(2, doc.RootElement.GetArrayLength());
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public class MenuTests : IDisposable
         var result = await _controller.CreateCategory(request);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
+        var createdResult = Assert.IsType<CreatedResult>(result);
         var savedCategory = await _context.Categories.FirstOrDefaultAsync(c => c.Name == "New Category");
         Assert.NotNull(savedCategory);
         Assert.Equal("Bar", savedCategory.DisplayStation);
@@ -145,9 +145,15 @@ public class MenuTests : IDisposable
         var result = await _controller.DeleteCategory(category.Id);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        var deleted = await _context.Categories.FindAsync(category.Id);
-        Assert.Null(deleted);
+        Assert.IsType<NoContentResult>(result);
+        
+        var dbCategory = await _context.Categories.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == category.Id);
+        Assert.NotNull(dbCategory);
+        Assert.True(dbCategory.IsDeleted);
+        Assert.NotNull(dbCategory.DeletedAt);
+
+        var standardCategory = await _context.Categories.FirstOrDefaultAsync(c => c.Id == category.Id);
+        Assert.Null(standardCategory);
     }
 
     [Fact]
@@ -190,8 +196,7 @@ public class MenuTests : IDisposable
         
         var json = JsonSerializer.Serialize(okResult.Value);
         using var doc = JsonDocument.Parse(json);
-        var data = doc.RootElement.GetProperty("data");
-        Assert.Equal(2, data.GetArrayLength());
+        Assert.Equal(2, doc.RootElement.GetArrayLength());
     }
 
     [Fact]
@@ -204,7 +209,7 @@ public class MenuTests : IDisposable
         var result = await _controller.CreateTopping(request);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
+        var createdResult = Assert.IsType<CreatedResult>(result);
         var saved = await _context.Toppings.FirstOrDefaultAsync(t => t.Name == "Pearl");
         Assert.NotNull(saved);
         Assert.Equal(5000, saved.Price);
@@ -257,9 +262,15 @@ public class MenuTests : IDisposable
         var result = await _controller.DeleteTopping(topping.Id);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        var deleted = await _context.Toppings.FindAsync(topping.Id);
-        Assert.Null(deleted);
+        Assert.IsType<NoContentResult>(result);
+        
+        var dbTopping = await _context.Toppings.IgnoreQueryFilters().FirstOrDefaultAsync(t => t.Id == topping.Id);
+        Assert.NotNull(dbTopping);
+        Assert.True(dbTopping.IsDeleted);
+        Assert.NotNull(dbTopping.DeletedAt);
+
+        var standardTopping = await _context.Toppings.FirstOrDefaultAsync(t => t.Id == topping.Id);
+        Assert.Null(standardTopping);
     }
 
     // ========================================================
@@ -301,7 +312,7 @@ public class MenuTests : IDisposable
         
         var json = JsonSerializer.Serialize(okResult.Value);
         using var doc = JsonDocument.Parse(json);
-        var data = doc.RootElement.GetProperty("data");
+        var data = doc.RootElement.GetProperty("items");
         Assert.Equal(1, data.GetArrayLength());
     }
 
@@ -326,8 +337,7 @@ public class MenuTests : IDisposable
         
         var json = JsonSerializer.Serialize(okResult.Value);
         using var doc = JsonDocument.Parse(json);
-        var data = doc.RootElement.GetProperty("data");
-        Assert.Equal(product.Id, data.GetProperty("Id").GetInt32());
+        Assert.Equal(product.Id, doc.RootElement.GetProperty("Id").GetInt32());
     }
 
     [Fact]
@@ -368,7 +378,7 @@ public class MenuTests : IDisposable
         var result = await _controller.CreateProduct(request);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
+        var createdResult = Assert.IsType<CreatedAtActionResult>(result);
         var saved = await _context.Products
             .Include(p => p.Sizes)
             .Include(p => p.Toppings)
@@ -400,7 +410,7 @@ public class MenuTests : IDisposable
         var result = await _controller.CreateProduct(request);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
+        var createdResult = Assert.IsType<CreatedAtActionResult>(result);
         var saved = await _context.Products
             .Include(p => p.Sizes)
             .FirstOrDefaultAsync(p => p.Name == "Espresso");
@@ -492,9 +502,15 @@ public class MenuTests : IDisposable
         var result = await _controller.DeleteProduct(product.Id);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        var deleted = await _context.Products.FindAsync(product.Id);
-        Assert.Null(deleted);
+        Assert.IsType<NoContentResult>(result);
+        
+        var dbProduct = await _context.Products.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == product.Id);
+        Assert.NotNull(dbProduct);
+        Assert.True(dbProduct.IsDeleted);
+        Assert.NotNull(dbProduct.DeletedAt);
+
+        var standardProduct = await _context.Products.FirstOrDefaultAsync(p => p.Id == product.Id);
+        Assert.Null(standardProduct);
     }
 
     [Fact]

@@ -1,15 +1,4 @@
-:root {
-    --admin-primary: #35571b; /* matcha-primary-dark */
-    --admin-primary-light: #e8f5e9;
-    --admin-accent: #4c7031; /* matcha-primary */
-    --admin-accent-light: #c5efa2; /* primary-fixed */
-    --admin-bg: #fdfaf6; /* milk-bg */
-    --admin-sidebar-bg: #ffffff;
-    --admin-card-bg: #ffffff;
-    --admin-text-dark: #2c1b18; /* espresso-dark */
-    --admin-text-muted: #73796c; /* outline */
-    --admin-border: rgba(44, 27, 24, 0.08);
-}
+/* Admin Dashboard Styling */
 
 .admin-body {
     background-color: var(--admin-bg);
@@ -275,7 +264,7 @@
     display: block;
 }
 
-@@keyframes viewFadeIn {
+@keyframes viewFadeIn {
     from {
         opacity: 0;
         transform: translateY(8px);
@@ -497,7 +486,7 @@
     animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@@keyframes toastSlideIn {
+@keyframes toastSlideIn {
     from {
         opacity: 0;
         transform: translateY(12px) scale(0.95);

@@ -19,6 +19,7 @@ public class OrderService
     private readonly IPaymentRepository _paymentRepository;
     private readonly ICustomerRepository _customerRepository;
     private readonly IStaffRepository _staffRepository;
+    private readonly ITransactionManager _transactionManager;
 
     public OrderService(
         IOrderRepository orderRepository,
@@ -27,7 +28,8 @@ public class OrderService
         IVoucherRepository voucherRepository,
         IPaymentRepository paymentRepository,
         ICustomerRepository customerRepository,
-        IStaffRepository staffRepository)
+        IStaffRepository staffRepository,
+        ITransactionManager transactionManager)
     {
         _orderRepository = orderRepository;
         _productRepository = productRepository;
@@ -36,6 +38,7 @@ public class OrderService
         _paymentRepository = paymentRepository;
         _customerRepository = customerRepository;
         _staffRepository = staffRepository;
+        _transactionManager = transactionManager;
     }
 
     public async Task<OrderResponse> CreateOrderAsync(CreateOrderRequest request, int staffId)
@@ -161,8 +164,8 @@ public class OrderService
                 SugarLevel = itemReq.SugarLevel ?? "100",
                 IceLevel = itemReq.IceLevel ?? "100",
                 IsPointRedemption = itemReq.IsPointRedemption,
-                BarStatus = "Pending",
-                PastryStatus = "Pending",
+                BarStatus = (product.Category?.DisplayStation == "Bar" || product.Category?.DisplayStation == "Both" || string.IsNullOrEmpty(product.Category?.DisplayStation)) ? "Pending" : "NA",
+                PastryStatus = (product.Category?.DisplayStation == "Pastry" || product.Category?.DisplayStation == "Both") ? "Pending" : "NA",
                 Toppings = itemToppings
             });
         }
@@ -347,75 +350,108 @@ public class OrderService
             throw new KeyNotFoundException("Không tìm thấy đơn hàng cần thanh toán.");
         }
 
+        // Check for idempotency: One order can only have at most one successful payment
+        var hasPaid = await _paymentRepository.HasCompletedPaymentForOrderAsync(orderId);
+        if (hasPaid)
+        {
+            throw new InvalidOperationException("Đơn hàng đã được thanh toán trước đó.");
+        }
+
         if (order.Status != OrderStatus.Draft && order.Status != OrderStatus.Pending)
         {
             throw new InvalidOperationException("Đơn hàng này đã được thanh toán hoặc không ở trạng thái hợp lệ để thanh toán.");
         }
 
-        // Create Payment record
-        var payment = new Payment
+        // Map Payment method string to Enum safely
+        PaymentMethod method;
+        var methodStr = request.PaymentMethod;
+        if (methodStr.Equals("Transfer", StringComparison.OrdinalIgnoreCase))
         {
-            OrderId = order.Id,
-            Amount = order.TotalAmount,
-            AmountReceived = request.AmountReceived,
-            AmountChange = Math.Max(0, request.AmountReceived - order.TotalAmount),
-            ReferenceCode = request.ReferenceCode ?? "",
-            CreatedByStaffId = staffId,
-            Method = Enum.Parse<PaymentMethod>(request.PaymentMethod),
-            Status = PaymentStatus.Completed,
-            PaidAt = DateTime.UtcNow,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        await _paymentRepository.AddAsync(payment);
-
-        // Update Order details
-        order.PaymentStatus = "Paid";
-        order.PaymentMethod = request.PaymentMethod;
-        order.AmountReceived = request.AmountReceived;
-        order.AmountChange = payment.AmountChange;
-        order.Status = OrderStatus.Confirmed;
-        order.ConfirmedAt = DateTime.UtcNow;
-
-        // Process loyalty points if customer exists
-        if (order.CustomerId.HasValue)
+            method = PaymentMethod.VietQr;
+        }
+        else if (methodStr.Equals("Mixed", StringComparison.OrdinalIgnoreCase))
         {
-            var customer = await _customerRepository.GetByIdAsync(order.CustomerId.Value);
-            if (customer != null)
-            {
-                int pointsEarned = (int)(order.TotalAmount / 10000m); // 1 point for every 10k VND
-                customer.CurrentPoints += pointsEarned;
-                customer.TotalSpend += order.TotalAmount;
-
-                // Create point transaction
-                await _orderRepository.AddPointTransactionAsync(new PointTransaction
-                {
-                    CustomerId = customer.Id,
-                    OrderId = order.Id,
-                    TransactionType = "Earn",
-                    Points = pointsEarned,
-                    Description = $"Tích điểm từ đơn hàng #{order.OrderCode}",
-                    CreatedAt = DateTime.UtcNow
-                });
-
-                // Tier Upgrade Check
-                if (customer.TotalSpend >= 1500000)
-                {
-                    customer.LoyaltyTier = LoyaltyTier.Gold;
-                }
-                else if (customer.TotalSpend >= 1000000)
-                {
-                    if (customer.LoyaltyTier != LoyaltyTier.Gold)
-                    {
-                        customer.LoyaltyTier = LoyaltyTier.Silver;
-                    }
-                }
-
-                await _customerRepository.UpdateAsync(customer);
-            }
+            method = PaymentMethod.Mixed;
+        }
+        else if (!Enum.TryParse(methodStr, true, out method))
+        {
+            throw new ArgumentException($"Phương thức thanh toán '{methodStr}' không hợp lệ.");
         }
 
-        await _orderRepository.UpdateAsync(order);
+        await _transactionManager.BeginTransactionAsync();
+        try
+        {
+            // Create Payment record
+            var payment = new Payment
+            {
+                OrderId = order.Id,
+                Amount = order.TotalAmount,
+                AmountReceived = request.AmountReceived,
+                AmountChange = Math.Max(0, request.AmountReceived - order.TotalAmount),
+                ReferenceCode = request.ReferenceCode ?? "",
+                CreatedByStaffId = staffId,
+                Method = method,
+                Status = PaymentStatus.Completed,
+                PaidAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _paymentRepository.AddAsync(payment);
+
+            // Update Order details
+            order.PaymentStatus = "Paid";
+            order.PaymentMethod = request.PaymentMethod;
+            order.AmountReceived = request.AmountReceived;
+            order.AmountChange = payment.AmountChange;
+            order.Status = OrderStatus.Confirmed;
+            order.ConfirmedAt = DateTime.UtcNow;
+
+            // Process loyalty points if customer exists
+            if (order.CustomerId.HasValue)
+            {
+                var customer = await _customerRepository.GetByIdAsync(order.CustomerId.Value);
+                if (customer != null)
+                {
+                    int pointsEarned = (int)(order.TotalAmount / 10000m); // 1 point for every 10k VND
+                    customer.CurrentPoints += pointsEarned;
+                    customer.TotalSpend += order.TotalAmount;
+
+                    // Create point transaction
+                    await _orderRepository.AddPointTransactionAsync(new PointTransaction
+                    {
+                        CustomerId = customer.Id,
+                        OrderId = order.Id,
+                        TransactionType = "Earn",
+                        Points = pointsEarned,
+                        Description = $"Tích điểm từ đơn hàng #{order.OrderCode}",
+                        CreatedAt = DateTime.UtcNow
+                    });
+
+                    // Tier Upgrade Check
+                    if (customer.TotalSpend >= 1500000)
+                    {
+                        customer.LoyaltyTier = LoyaltyTier.Gold;
+                    }
+                    else if (customer.TotalSpend >= 1000000)
+                    {
+                        if (customer.LoyaltyTier != LoyaltyTier.Gold)
+                        {
+                            customer.LoyaltyTier = LoyaltyTier.Silver;
+                        }
+                    }
+
+                    await _customerRepository.UpdateAsync(customer);
+                }
+            }
+
+            await _orderRepository.UpdateAsync(order);
+            await _transactionManager.CommitTransactionAsync();
+        }
+        catch
+        {
+            await _transactionManager.RollbackTransactionAsync();
+            throw;
+        }
 
         return MapToResponse(order);
     }
@@ -516,6 +552,160 @@ public class OrderService
                 }).ToList()
             }).ToList()
         };
+    }
+
+    public async Task<OrderResponse> UpdateOrderStatusAsync(int orderId, OrderStatus newStatus)
+    {
+        var order = await _orderRepository.GetWithDetailsByIdAsync(orderId);
+        if (order == null)
+        {
+            throw new KeyNotFoundException("Không tìm thấy đơn hàng.");
+        }
+
+        ValidateStatusTransition(order.Status, newStatus);
+
+        order.Status = newStatus;
+        if (newStatus == OrderStatus.Confirmed)
+        {
+            order.ConfirmedAt = DateTime.UtcNow;
+        }
+        else if (newStatus == OrderStatus.Completed)
+        {
+            order.CompletedAt = DateTime.UtcNow;
+        }
+        else if (newStatus == OrderStatus.Closed)
+        {
+            order.ClosedAt = DateTime.UtcNow;
+        }
+
+        await _orderRepository.UpdateAsync(order);
+        return MapToResponse(order);
+    }
+
+    private void ValidateStatusTransition(OrderStatus current, OrderStatus next)
+    {
+        if (current == next) return;
+
+        if (current == OrderStatus.Closed || current == OrderStatus.Cancelled)
+        {
+            throw new InvalidOperationException($"Không thể chuyển đổi trạng thái đơn hàng từ {current} sang {next}.");
+        }
+
+        if (next == OrderStatus.Cancelled)
+        {
+            if (current == OrderStatus.Completed)
+            {
+                throw new InvalidOperationException("Không thể hủy đơn hàng đã hoàn thành chế biến.");
+            }
+            return;
+        }
+
+        bool isValid = false;
+        switch (current)
+        {
+            case OrderStatus.Draft:
+                isValid = next == OrderStatus.Pending || next == OrderStatus.Confirmed;
+                break;
+            case OrderStatus.Pending:
+                isValid = next == OrderStatus.Confirmed;
+                break;
+            case OrderStatus.Confirmed:
+                isValid = next == OrderStatus.Preparing || next == OrderStatus.Completed;
+                break;
+            case OrderStatus.Preparing:
+                isValid = next == OrderStatus.Completed;
+                break;
+            case OrderStatus.Completed:
+                isValid = next == OrderStatus.Closed;
+                break;
+        }
+
+        if (!isValid)
+        {
+            throw new InvalidOperationException($"Không thể chuyển đổi trạng thái đơn hàng từ {current} sang {next}.");
+        }
+    }
+
+    public async Task<OrderResponse> UpdateStationPrepStatusAsync(int orderId, string station, string targetStatus)
+    {
+        var order = await _orderRepository.GetWithDetailsByIdAsync(orderId);
+        if (order == null)
+        {
+            throw new KeyNotFoundException("Không tìm thấy đơn hàng.");
+        }
+
+        if (order.Status == OrderStatus.Completed || order.Status == OrderStatus.Closed || order.Status == OrderStatus.Cancelled)
+        {
+            throw new InvalidOperationException("Không thể cập nhật trạng thái chế biến cho đơn hàng đã hoàn thành, đã đóng hoặc đã hủy.");
+        }
+
+        // Determine item station status string to set ("Preparing" or "Done")
+        string itemStatusValue = targetStatus == "Preparing" ? "Preparing" : "Done";
+
+        // Update items belonging to the station
+        bool updatedAny = false;
+        foreach (var item in order.OrderItems)
+        {
+            if (station.Equals("Bar", StringComparison.OrdinalIgnoreCase))
+            {
+                if (item.BarStatus != "NA")
+                {
+                    item.BarStatus = itemStatusValue;
+                    updatedAny = true;
+                }
+            }
+            else if (station.Equals("Pastry", StringComparison.OrdinalIgnoreCase))
+            {
+                if (item.PastryStatus != "NA")
+                {
+                    item.PastryStatus = itemStatusValue;
+                    updatedAny = true;
+                }
+            }
+        }
+
+        if (!updatedAny)
+        {
+            throw new InvalidOperationException($"Đơn hàng này không chứa sản phẩm nào cần chế biến tại quầy {station}.");
+        }
+
+        // Determine overall order status
+        bool allDone = true;
+        bool anyPreparingOrDone = false;
+
+        foreach (var item in order.OrderItems)
+        {
+            bool itemBarDone = item.BarStatus == "Done" || item.BarStatus == "NA";
+            bool itemPastryDone = item.PastryStatus == "Done" || item.PastryStatus == "NA";
+
+            if (!itemBarDone || !itemPastryDone)
+            {
+                allDone = false;
+            }
+
+            if (item.BarStatus == "Preparing" || item.BarStatus == "Done" || 
+                item.PastryStatus == "Preparing" || item.PastryStatus == "Done")
+            {
+                anyPreparingOrDone = true;
+            }
+        }
+
+        if (allDone)
+        {
+            order.Status = OrderStatus.Completed;
+            order.CompletedAt = DateTime.UtcNow;
+        }
+        else if (anyPreparingOrDone)
+        {
+            order.Status = OrderStatus.Preparing;
+        }
+        else
+        {
+            order.Status = OrderStatus.Confirmed;
+        }
+
+        await _orderRepository.UpdateAsync(order);
+        return MapToResponse(order);
     }
 }
 

@@ -6,26 +6,69 @@
     <link rel="stylesheet" href="~/css/PDS/Index.css" asp-append-version="true" />
 }
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card bg-dark text-light border-secondary shadow">
-                <div class="card-header bg-info text-dark d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold">MÀN HÌNH PDS (ĐIỀU PHỐI CHẾ BIẾN)</h5>
-                    <span class="badge bg-dark" id="pdsStationBadge">Quầy</span>
-                </div>
-                <div class="card-body">
-                    <h5 class="card-title">Xác thực thành công!</h5>
-                    <p class="card-text text-muted">Chào mừng bạn đến với Màn hình hiển thị đơn hàng pha chế (PDS). Màn hình này hiển thị thời gian thực các đơn cần pha chế/làm bánh.</p>
-                    
-                    <div class="bg-secondary bg-opacity-10 p-3 rounded border border-info">
-                        <span class="fw-bold text-info">Bộ phận hiện tại:</span> 
-                        <span id="pdsStationName" class="badge bg-info text-dark ms-2">Chưa xác định</span>
-                    </div>
+<!-- Full width wrapper for kitchen monitor display -->
+<div class="container-fluid px-4 py-3">
+    <!-- Header Controls -->
+    <div class="row align-items-center mb-4 p-3 rounded shadow-sm pds-header">
+        <div class="col-md-6 d-flex align-items-center gap-3">
+            <h4 class="mb-0 fw-bold text-white tracking-wide">☕ CAFEPOS - MÀN HÌNH PDS</h4>
+            <span class="badge bg-dark border border-secondary text-info fs-6 py-2 px-3" id="pdsStationBadge">Quầy Pha Chế</span>
+        </div>
+        <div class="col-md-6 d-flex justify-content-end align-items-center gap-3">
+            <!-- Connection Status -->
+            <div class="d-flex align-items-center gap-2 bg-dark px-3 py-2 rounded-pill border border-secondary">
+                <span class="pds-status-dot disconnected" id="signalrStatusDot"></span>
+                <span class="text-white-50 small fw-bold" id="signalrStatusText">Chưa kết nối</span>
+            </div>
+            <!-- Station Switcher Buttons -->
+            <div class="btn-group border border-secondary rounded-pill overflow-hidden shadow-sm" role="group">
+                <button type="button" class="btn btn-sm btn-dark text-white-50 px-3 border-0 py-2" id="btnStationBar" onclick="switchStation('Bar')">Bar (Pha chế)</button>
+                <button type="button" class="btn btn-sm btn-dark text-white-50 px-3 border-0 py-2" id="btnStationPastry" onclick="switchStation('Pastry')">Pastry (Bánh)</button>
+            </div>
+            <!-- Live Clock -->
+            <div class="text-white-50 fw-bold bg-dark border border-secondary px-3 py-2 rounded-pill fs-6" id="liveClock">
+                00:00:00
+            </div>
+        </div>
+    </div>
 
-                    <div class="mt-4 alert alert-secondary bg-dark text-muted border-secondary">
-                        <p class="mb-0 small"><strong>Sprint tiếp theo:</strong> Kết nối SignalR Hub để nhận đơn đặt hàng trực tiếp từ POS theo thời gian thực.</p>
-                    </div>
+    <!-- PDS Board Grid -->
+    <div class="row pds-board-container g-3">
+        <!-- COLUMN 1: QUEUED (CONFIRMED) -->
+        <div class="col-md-4">
+            <div class="pds-column">
+                <div class="pds-column-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-info">📥 CHỜ CHẾ BIẾN</h5>
+                    <span class="badge bg-info text-dark rounded-pill fs-6" id="countQueued">0</span>
+                </div>
+                <div class="pds-column-body" id="colQueued">
+                    <!-- Cards will be rendered here dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMN 2: PREPARING -->
+        <div class="col-md-4">
+            <div class="pds-column">
+                <div class="pds-column-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-warning">🍳 ĐANG THỰC HIỆN</h5>
+                    <span class="badge bg-warning text-dark rounded-pill fs-6" id="countPreparing">0</span>
+                </div>
+                <div class="pds-column-body" id="colPreparing">
+                    <!-- Cards will be rendered here dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMN 3: COMPLETED (READY) -->
+        <div class="col-md-4">
+            <div class="pds-column">
+                <div class="pds-column-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-success">✅ ĐÃ HOÀN THÀNH</h5>
+                    <span class="badge bg-success text-white rounded-pill fs-6" id="countCompleted">0</span>
+                </div>
+                <div class="pds-column-body" id="colCompleted">
+                    <!-- Cards will be rendered here dynamically -->
                 </div>
             </div>
         </div>
@@ -33,26 +76,14 @@
 </div>
 
 @section Scripts {
+    <!-- Load SignalR client from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+    <!-- Load reactive ES module script for logic -->
+    <script type="module" src="/js/pds/Index.js" asp-append-version="true"></script>
     <script>
-        window.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const station = urlParams.get('station') || 'Bar'; // default to Bar
-            
-            const badge = document.getElementById("pdsStationBadge");
-            const name = document.getElementById("pdsStationName");
-            
-            if (station.toLowerCase() === 'bar') {
-                badge.innerText = "Quầy Pha Chế (Bar)";
-                name.innerText = "QUẦY PHA CHẾ (BARISTA)";
-                name.className = "badge bg-info text-dark ms-2";
-            } else if (station.toLowerCase() === 'pastry') {
-                badge.innerText = "Quầy Bánh Ngọt";
-                name.innerText = "QUẦY BÁNH NGỌT & ĐỒ ĂN NHẸ";
-                name.className = "badge bg-warning text-dark ms-2";
-            } else {
-                badge.innerText = `Quầy ${station}`;
-                name.innerText = `BỘ PHẬN CHẾ BIẾN: ${station.toUpperCase()}`;
-            }
-        });
+        // Simple global redirect switcher for stations
+        function switchStation(station) {
+            window.location.search = `?station=${station}`;
+        }
     </script>
 }

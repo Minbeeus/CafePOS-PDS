@@ -1,42 +1,60 @@
 :root {
-  /* --- Brand Colors (Matcha & Espresso Cafe) --- */
-  --bg-milk: #fdfaf6;            /* Warm soft milk cream background */
-  --bg-cream: #f4eae1;           /* Cream beige background */
-  --color-white: #ffffff;
+  /* ======================================================== */
+  /* 1. MÀU THƯƠNG HIỆU CHỦ ĐẠO (Brand Colors: Matcha & Coffee) */
+  /* ======================================================== */
+  --bg-milk: #fdfaf6;            /* Nền trắng kem sữa ấm áp */
+  --bg-cream: #f4eae1;           /* Nền màu kem sữa ngọt ngào */
+  --color-white: #ffffff;        /* Màu trắng tinh khiết */
   
-  --coffee-dark: #2c1b18;        /* Espresso Dark Brown */
-  --coffee-medium: #4e3629;      /* Chestnut Brown */
-  --coffee-light: #7f5539;       /* Latte Milk Brown */
-  --coffee-beige: #ddb892;       /* Soft linen/sand */
+  --coffee-dark: #2c1b18;        /* Nâu đen Espresso */
+  --coffee-medium: #4e3629;      /* Nâu dẻ hạt dẻ */
+  --coffee-light: #7f5539;       /* Nâu sữa Latte */
+  --coffee-beige: #ddb892;       /* Nâu cát nhạt linen */
 
-  --matcha-dark: #2d4a22;        /* Dark Forest Green */
-  --matcha-primary: #4c7031;     /* Matcha Green */
-  --matcha-light: #5c8f3d;       /* Fresh leaf green */
-  --matcha-bg: #e8f0e2;          /* Light matcha cream */
+  --matcha-dark: #2d4a22;        /* Xanh lá thông đậm */
+  --matcha-primary: #4c7031;     /* Xanh lá Matcha đặc trưng */
+  --matcha-light: #5c8f3d;       /* Xanh lá cây non tươi */
+  --matcha-bg: #e8f0e2;          /* Màu kem Matcha nhạt */
 
-  --text-dark: #2c1b18;          /* Coffee dark text */
-  --text-muted: #7f6a64;         /* Muted coffee brown text */
+  --text-dark: #2c1b18;          /* Chữ chính nâu Espresso tối */
+  --text-muted: #7f6a64;         /* Chữ phụ nâu mờ */
 
-  /* --- Focus State --- */
+  /* ======================================================== */
+  /* 2. HIỆU ỨNG FOCUS (Focus Ring Outlines)                 */
+  /* ======================================================== */
   --focus-ring-outline: var(--color-white);
   --focus-ring-color: var(--matcha-primary);
 
-  /* --- POS Theme (Coffee House Style) --- */
-  --pos-bg: var(--coffee-dark);
-  --pos-accent: var(--matcha-primary);
-  --pos-text: var(--bg-milk);
-  --pos-border: #3d2521;
-  --pos-card-bg: #3d2521;
-  --pos-muted: #a68a80;
+  /* ======================================================== */
+  /* 3. GIAO DIỆN BÁN HÀNG POS (POS Client Theme)             */
+  /* ======================================================== */
+  --pos-bg: var(--coffee-dark);  /* Nền tối Espresso của POS */
+  --pos-accent: var(--matcha-primary); /* Nút bấm và tiêu điểm xanh matcha */
+  --pos-text: var(--bg-milk);    /* Màu chữ kem sáng của POS */
+  --pos-border: #3d2521;         /* Màu viền tối Espresso */
+  --pos-card-bg: #3d2521;        /* Nền thẻ sản phẩm/đơn nháp */
+  --pos-muted: #a68a80;          /* Màu chữ phụ mờ nhạt */
 
-  /* --- PDS Theme & Status Coding --- */
-  --pds-bg: var(--coffee-dark);
-  --pds-text: var(--bg-milk);
-  --status-pending: #dfa010;     /* Warm Caramel Gold */
-  --status-inprogress: #3d7fb5;  /* Soft Blue */
-  --status-done: var(--matcha-primary); /* Matcha Green */
+  /* ======================================================== */
+  /* 4. GIAO DIỆN ĐIỀU PHỐI PHA CHẾ PDS (PDS Prep Screen)     */
+  /* ======================================================== */
+  --pds-bg: #121212;             /* Nền tối xám sâu của màn hình chuẩn bị PDS */
+  --pds-card-bg: rgba(255, 255, 255, 0.05); /* Nền glassmorphism cho thẻ đơn hàng */
+  --pds-card-border: rgba(255, 255, 255, 0.1); /* Viền mờ nhẹ cho thẻ đơn */
+  --pds-text-primary: #e5dcd5;    /* Chữ sáng ấm của PDS */
+  --pds-text-secondary: #a09088;  /* Chữ phụ mờ của PDS */
+  --pds-accent-blue: #0dcaf0;    /* Xanh dương chỉ báo Chờ pha chế (Queued) */
+  --pds-accent-orange: #fd7e14;  /* Màu cam chỉ báo Đang pha chế (Preparing) */
+  --pds-accent-green: #198754;   /* Xanh lá chỉ báo Đã hoàn tất (Completed) */
+  --pds-bg-header: linear-gradient(135deg, #2c1b18 0%, #1c100e 100%); /* Nền chuyển màu thanh tiêu đề */
+  
+  --status-pending: #dfa010;     /* Vàng Caramel - Chờ chuẩn bị */
+  --status-inprogress: #3d7fb5;  /* Xanh dương - Đang chế biến */
+  --status-done: var(--matcha-primary); /* Xanh Matcha - Đã xong */
 
-  /* --- Customer Web Theme (Cream & Coffee Brown) --- */
+  /* ======================================================== */
+  /* 5. GIAO DIỆN KHÁCH HÀNG (Customer Portal Theme)          */
+  /* ======================================================== */
   --customer-bg: var(--bg-milk);
   --customer-primary: var(--coffee-medium);
   --customer-secondary: var(--coffee-light);
@@ -44,12 +62,19 @@
   --customer-gold: var(--matcha-primary);
   --customer-text: var(--text-dark);
 
-  /* --- Admin Theme (Matcha & Coffee Dashboard) --- */
-  --admin-bg: var(--bg-milk);
-  --admin-sidebar-bg: var(--coffee-dark);
-  --admin-text-dark: var(--text-dark);
-  --admin-text-muted: var(--text-muted);
-  --admin-primary: var(--matcha-primary);
+  /* ======================================================== */
+  /* 6. TRANG QUẢN TRỊ ADMIN (Admin Dashboard Theme)          */
+  /* ======================================================== */
+  --admin-bg: #fdfaf6;            /* Nền chính trang Admin (milk-bg) */
+  --admin-primary: #35571b;       /* Xanh matcha đậm tiêu chuẩn */
+  --admin-primary-light: #e8f5e9; /* Nền xanh lá cây nhạt */
+  --admin-accent: #4c7031;        /* Xanh matcha sáng làm điểm nhấn */
+  --admin-accent-light: #c5efa2;  /* Nền nổi bật xanh non mờ */
+  --admin-sidebar-bg: #ffffff;    /* Nền trắng thanh danh mục bên */
+  --admin-card-bg: #ffffff;       /* Nền trắng thẻ nội dung */
+  --admin-text-dark: #2c1b18;     /* Chữ tối Espresso */
+  --admin-text-muted: #73796c;    /* Chữ xám mờ phụ */
+  --admin-border: rgba(44, 27, 24, 0.08); /* Đường chia viền mờ */
 }
 
 html {

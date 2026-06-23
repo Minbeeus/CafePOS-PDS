@@ -9,6 +9,7 @@ using CafePOS.Infrastructure.Data;
 using CafePOS.Application.Services;
 using CafePOS.Application.DTOs.Orders;
 using CafePOS.Infrastructure.Repositories;
+using CafePOS.Infrastructure.Persistence;
 using Xunit;
 
 namespace CafePOS.Tests.UnitTests;
@@ -29,6 +30,7 @@ public class OrderTests : IDisposable
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .ConfigureWarnings(x => x.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning))
             .Options;
 
         _context = new AppDbContext(options);
@@ -42,6 +44,8 @@ public class OrderTests : IDisposable
         _customerRepository = new CustomerRepository(_context);
         _staffRepository = new StaffRepository(_context);
 
+        var transactionManager = new TransactionManager(_context);
+
         _orderService = new OrderService(
             _orderRepository,
             _productRepository,
@@ -49,7 +53,8 @@ public class OrderTests : IDisposable
             _voucherRepository,
             _paymentRepository,
             _customerRepository,
-            _staffRepository);
+            _staffRepository,
+            transactionManager);
     }
 
     public void Dispose()
@@ -352,5 +357,180 @@ public class OrderTests : IDisposable
         // TotalSpend updated from 1200000 + 120000 = 1320000 -> tier is upgraded to Silver (already Silver, not yet 1.5M Gold)
         Assert.Equal(1320000, customer.TotalSpend);
         Assert.Equal(LoyaltyTier.Silver, customer.LoyaltyTier);
+    }
+
+    [Fact]
+    public async Task ProcessPayment_DoublePayment_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        await SeedBaseDataAsync();
+        _context.Shifts.Add(new Shift { Status = "Open", OpenedByStaffId = 1, ShiftDate = DateTime.UtcNow.Date, OpenedAt = DateTime.UtcNow });
+        await _context.SaveChangesAsync();
+
+        var createReq = new CreateOrderRequest
+        {
+            Type = "DineIn",
+            Items = new List<OrderItemRequest>
+            {
+                new OrderItemRequest { ProductId = 1, Quantity = 1, SizeLabel = "M" }
+            }
+        };
+        var orderDto = await _orderService.CreateOrderAsync(createReq, 2);
+
+        var paymentReq = new PaymentMethodRequest
+        {
+            PaymentMethod = "Cash",
+            AmountReceived = 35000
+        };
+
+        // First payment
+        await _orderService.ProcessPaymentAsync(orderDto.Id, paymentReq, 2);
+
+        // Act & Assert (Second payment throws)
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _orderService.ProcessPaymentAsync(orderDto.Id, paymentReq, 2));
+        Assert.Contains("thanh toán trước đó", ex.Message);
+    }
+
+    [Fact]
+    public void GenerateVietQr_ReturnsValidImageProviderUrl()
+    {
+        // Arrange
+        var vietQrService = new CafePOS.Infrastructure.Services.VietQrService();
+        var orderCode = "ORD12345";
+        decimal amount = 35000;
+
+        // Act
+        var url = vietQrService.GenerateQrCodeUrl(orderCode, amount);
+
+        // Assert
+        Assert.NotNull(url);
+        Assert.Contains("img.vietqr.io", url);
+        Assert.Contains("amount=35000", url);
+        Assert.Contains("CAFEPOS%20ORD12345", url);
+    }
+
+    [Fact]
+    public async Task UpdateOrderStatus_ValidTransition_UpdatesStatusSuccessfully()
+    {
+        // Arrange
+        await SeedBaseDataAsync();
+        _context.Shifts.Add(new Shift { Status = "Open", OpenedByStaffId = 1, ShiftDate = DateTime.UtcNow.Date, OpenedAt = DateTime.UtcNow });
+        await _context.SaveChangesAsync();
+
+        var createReq = new CreateOrderRequest
+        {
+            Type = "DineIn",
+            Items = new List<OrderItemRequest> { new OrderItemRequest { ProductId = 1, Quantity = 1, SizeLabel = "M" } }
+        };
+        var orderDto = await _orderService.CreateOrderAsync(createReq, 2);
+
+        // Confirm the order first by processing payment
+        var paymentReq = new PaymentMethodRequest { PaymentMethod = "Cash", AmountReceived = 35000 };
+        var confirmedOrder = await _orderService.ProcessPaymentAsync(orderDto.Id, paymentReq, 2);
+        Assert.Equal("Confirmed", confirmedOrder.Status);
+
+        // Act & Assert: transition Confirmed -> Preparing
+        var preparingOrder = await _orderService.UpdateOrderStatusAsync(orderDto.Id, OrderStatus.Preparing);
+        Assert.Equal("Preparing", preparingOrder.Status);
+
+        // Act & Assert: transition Preparing -> Completed
+        var completedOrder = await _orderService.UpdateOrderStatusAsync(orderDto.Id, OrderStatus.Completed);
+        Assert.Equal("Completed", completedOrder.Status);
+        Assert.NotNull(completedOrder.CompletedAt);
+    }
+
+    [Fact]
+    public async Task UpdateOrderStatus_InvalidTransition_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        await SeedBaseDataAsync();
+        _context.Shifts.Add(new Shift { Status = "Open", OpenedByStaffId = 1, ShiftDate = DateTime.UtcNow.Date, OpenedAt = DateTime.UtcNow });
+        await _context.SaveChangesAsync();
+
+        var createReq = new CreateOrderRequest
+        {
+            Type = "DineIn",
+            Items = new List<OrderItemRequest> { new OrderItemRequest { ProductId = 1, Quantity = 1, SizeLabel = "M" } }
+        };
+        var orderDto = await _orderService.CreateOrderAsync(createReq, 2);
+
+        // Act & Assert: transition Draft directly to Completed (invalid)
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+            _orderService.UpdateOrderStatusAsync(orderDto.Id, OrderStatus.Completed));
+        Assert.Contains("Không thể chuyển đổi trạng thái đơn hàng", ex.Message);
+    }
+
+    [Fact]
+    public async Task UpdateStationPrepStatus_ValidTransitions_UpdatesSuccessfully()
+    {
+        // Arrange
+        await SeedBaseDataAsync();
+        
+        // Add another category and product for Pastry
+        var pastryCat = new Category { Id = 2, Name = "Pastry", DisplayStation = "Pastry", IsActive = true };
+        var cake = new Product
+        {
+            Id = 2,
+            Name = "Cake",
+            BasePrice = 30000,
+            Status = "Active",
+            CategoryId = 2,
+            HasSizeOption = true,
+            HasSugarOption = false,
+            HasIceOption = false,
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.Categories.Add(pastryCat);
+        _context.Products.Add(cake);
+        _context.ProductSizes.Add(new ProductSize { ProductId = 2, SizeLabel = "M", PriceModifier = 0, IsDefault = true });
+        
+        _context.Shifts.Add(new Shift { Status = "Open", OpenedByStaffId = 1, ShiftDate = DateTime.UtcNow.Date, OpenedAt = DateTime.UtcNow });
+        await _context.SaveChangesAsync();
+
+        var createReq = new CreateOrderRequest
+        {
+            Type = "DineIn",
+            Items = new List<OrderItemRequest> 
+            { 
+                new OrderItemRequest { ProductId = 1, Quantity = 1, SizeLabel = "M" }, // Bar item
+                new OrderItemRequest { ProductId = 2, Quantity = 1, SizeLabel = "M" }  // Pastry item
+            }
+        };
+        var orderDto = await _orderService.CreateOrderAsync(createReq, 2);
+
+        // Confirm order
+        var paymentReq = new PaymentMethodRequest { PaymentMethod = "Cash", AmountReceived = 65000 };
+        var confirmedOrder = await _orderService.ProcessPaymentAsync(orderDto.Id, paymentReq, 2);
+        Assert.Equal("Confirmed", confirmedOrder.Status);
+
+        // Act: Barista starts preparing Bar items
+        var prepOrderBar = await _orderService.UpdateStationPrepStatusAsync(orderDto.Id, "Bar", "Preparing");
+        Assert.Equal("Preparing", prepOrderBar.Status);
+        
+        // Assert: Bar item is Preparing, Pastry item is still Pending
+        var barItem = prepOrderBar.Items.First(i => i.ProductId == 1);
+        var pastryItem = prepOrderBar.Items.First(i => i.ProductId == 2);
+        Assert.Equal("Preparing", barItem.BarStatus);
+        Assert.Equal("Pending", pastryItem.PastryStatus);
+
+        // Act: Barista completes Bar items
+        var doneOrderBar = await _orderService.UpdateStationPrepStatusAsync(orderDto.Id, "Bar", "Completed");
+        // Assert: Overall status is still Preparing because Pastry is Pending
+        Assert.Equal("Preparing", doneOrderBar.Status);
+        
+        barItem = doneOrderBar.Items.First(i => i.ProductId == 1);
+        pastryItem = doneOrderBar.Items.First(i => i.ProductId == 2);
+        Assert.Equal("Done", barItem.BarStatus);
+        Assert.Equal("Pending", pastryItem.PastryStatus);
+
+        // Act: Pastry staff completes Pastry items
+        var doneOrderPastry = await _orderService.UpdateStationPrepStatusAsync(orderDto.Id, "Pastry", "Completed");
+        // Assert: Overall status is now Completed since all items are Done
+        Assert.Equal("Completed", doneOrderPastry.Status);
+        
+        barItem = doneOrderPastry.Items.First(i => i.ProductId == 1);
+        pastryItem = doneOrderPastry.Items.First(i => i.ProductId == 2);
+        Assert.Equal("Done", barItem.BarStatus);
+        Assert.Equal("Done", pastryItem.PastryStatus);
     }
 }

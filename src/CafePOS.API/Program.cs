@@ -40,16 +40,19 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Configure CORS for web project
+// Configure CORS for web project to allow SignalR credentials
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins("http://localhost:5211", "https://localhost:7107")
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
+
+builder.Services.AddSignalR();
 
 // Register Dependencies
 builder.Services.AddScoped<IStaffRepository, StaffRepository>();
@@ -62,8 +65,14 @@ builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IJwtProvider, JwtProvider>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<OrderService>();
+builder.Services.AddScoped<CafePOS.Infrastructure.Services.VietQrService>();
+builder.Services.AddScoped<ITransactionManager, CafePOS.Infrastructure.Persistence.TransactionManager>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
@@ -100,5 +109,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<CafePOS.API.Hubs.OrderHub>("/hubs/orders");
 
 app.Run();

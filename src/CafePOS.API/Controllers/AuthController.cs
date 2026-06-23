@@ -28,10 +28,10 @@ public class AuthController : ControllerBase
         var response = await _authService.LoginStaffAsync(request);
         if (response == null)
         {
-            return Unauthorized(new { success = false, message = "Tên đăng nhập hoặc mật khẩu không chính xác." });
+            return Unauthorized(new { message = "Tên đăng nhập hoặc mật khẩu không chính xác." });
         }
 
-        return Ok(new { success = true, data = response, message = "Đăng nhập thành công" });
+        return Ok(response);
     }
 
     [HttpPost("pos/login")]
@@ -41,10 +41,10 @@ public class AuthController : ControllerBase
         var response = await _authService.LoginPosAsync(request);
         if (response == null)
         {
-            return Unauthorized(new { success = false, message = "Mã POS không chính xác hoặc nhân viên đã bị khóa." });
+            return Unauthorized(new { message = "Mã POS không chính xác hoặc nhân viên đã bị khóa." });
         }
 
-        return Ok(new { success = true, data = response, message = "Đăng nhập POS thành công" });
+        return Ok(response);
     }
 
     [HttpPost("staff/verify-code")]
@@ -53,30 +53,27 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.PosCode))
         {
-            return BadRequest(new { success = false, message = "Mã POS không được trống." });
+            return BadRequest(new { message = "Mã POS không được trống." });
         }
 
         var staff = await _staffRepository.GetByPosCodeAsync(request.PosCode);
         if (staff == null)
         {
-            return Ok(new { success = true, data = new { isValid = false, message = "Mã xác thực không đúng." } });
+            return Ok(new { isValid = false, message = "Mã xác thực không đúng." });
         }
 
         // Check if the staff role matches the required role (Owner has bypass)
         bool hasRequiredRole = staff.Role == StaffRole.Owner || staff.Role.ToString() == request.RequiredRole;
         if (!hasRequiredRole)
         {
-            return Ok(new { success = true, data = new { isValid = false, message = "Quyền hạn không đủ để xác nhận thao tác này." } });
+            return Ok(new { isValid = false, message = "Quyền hạn không đủ để xác nhận thao tác này." });
         }
 
         return Ok(new {
-            success = true,
-            data = new {
-                isValid = true,
-                staffId = staff.Id,
-                staffName = staff.FullName,
-                role = staff.Role.ToString()
-            }
+            isValid = true,
+            staffId = staff.Id,
+            staffName = staff.FullName,
+            role = staff.Role.ToString()
         });
     }
 
@@ -87,10 +84,10 @@ public class AuthController : ControllerBase
         var response = await _authService.LoginCustomerAsync(request);
         if (response == null)
         {
-            return Unauthorized(new { success = false, message = "Số điện thoại hoặc mật khẩu không chính xác." });
+            return Unauthorized(new { message = "Số điện thoại hoặc mật khẩu không chính xác." });
         }
 
-        return Ok(new { success = true, data = response, message = "Đăng nhập khách hàng thành công" });
+        return Ok(response);
     }
 
     [HttpPost("customer/register")]
@@ -102,14 +99,14 @@ public class AuthController : ControllerBase
             var response = await _authService.RegisterCustomerAsync(request);
             if (response == null)
             {
-                return BadRequest(new { success = false, message = "Không thể đăng ký tài khoản. Vui lòng kiểm tra lại thông tin." });
+                return BadRequest(new { message = "Không thể đăng ký tài khoản. Vui lòng kiểm tra lại thông tin." });
             }
 
-            return Ok(new { success = true, data = response, message = "Đăng ký tài khoản thành công" });
+            return Ok(response);
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { success = false, message = ex.Message });
+            return BadRequest(new { message = ex.Message });
         }
     }
 
@@ -120,10 +117,10 @@ public class AuthController : ControllerBase
         var response = await _authService.LoginWithGoogleAsync(request);
         if (response == null)
         {
-            return Unauthorized(new { success = false, message = "Xác thực tài khoản Google không thành công." });
+            return Unauthorized(new { message = "Xác thực tài khoản Google không thành công." });
         }
 
-        return Ok(new { success = true, data = response, message = "Đăng nhập Google thành công" });
+        return Ok(response);
     }
 }
 

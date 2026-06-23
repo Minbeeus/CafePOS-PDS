@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using CafePOS.Infrastructure.Data;
+using CafePOS.Application.Interfaces.Repositories;
 using CafePOS.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using System;
@@ -13,38 +13,34 @@ namespace CafePOS.API.Controllers;
 [Route("api/v1/[controller]")]
 public class ShiftsController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly IShiftRepository _shiftRepository;
+    private readonly IOrderRepository _orderRepository;
 
-    public ShiftsController(AppDbContext context)
+    public ShiftsController(IShiftRepository shiftRepository, IOrderRepository orderRepository)
     {
-        _context = context;
+        _shiftRepository = shiftRepository;
+        _orderRepository = orderRepository;
     }
 
     [HttpGet("active")]
     [Authorize]
     public async Task<IActionResult> GetActiveShift()
     {
-        var activeShift = await _context.Shifts
-            .Include(s => s.OpenedBy)
-            .FirstOrDefaultAsync(s => s.Status == "Open");
+        var activeShift = await _shiftRepository.GetActiveShiftWithOpenedByAsync();
 
         if (activeShift == null)
         {
-            return Ok(new { success = true, data = (object?)null, message = "Không có ca làm việc nào đang mở." });
+            return Ok(null);
         }
 
         return Ok(new
         {
-            success = true,
-            data = new
-            {
-                activeShift.Id,
-                activeShift.ShiftDate,
-                activeShift.OpenedAt,
-                activeShift.OpeningCash,
-                OpenedByName = activeShift.OpenedBy?.FullName ?? "Unknown",
-                activeShift.Status
-            }
+            activeShift.Id,
+            activeShift.ShiftDate,
+            activeShift.OpenedAt,
+            activeShift.OpeningCash,
+            OpenedByName = activeShift.OpenedBy?.FullName ?? "Unknown",
+            activeShift.Status
         });
     }
 
@@ -52,18 +48,18 @@ public class ShiftsController : ControllerBase
     [Authorize(Roles = "Owner,ShiftLeader")]
     public async Task<IActionResult> OpenShift([FromBody] OpenShiftRequest request)
     {
-        var activeShift = await _context.Shifts.AnyAsync(s => s.Status == "Open");
-        if (activeShift)
+        var hasActiveShift = await _shiftRepository.GetActiveShiftAsync() != null;
+        if (hasActiveShift)
         {
-            return BadRequest(new { success = false, message = "Đã có một ca làm việc đang mở." });
+            return BadRequest(new { message = "Đã có một ca làm việc đang mở." });
         }
 
-        var staffIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
-            ?? User.FindFirst("sub")?.Value;
+        var staffIdClaim = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
+            ?? User?.FindFirst("sub")?.Value;
         
         if (!int.TryParse(staffIdClaim, out int staffId))
         {
-            return Unauthorized(new { success = false, message = "Không xác định được nhân viên." });
+            return Unauthorized(new { message = "Không xác định được nhân viên." });
         }
 
         var shift = new Shift
@@ -75,36 +71,32 @@ public class ShiftsController : ControllerBase
             Status = "Open"
         };
 
-        _context.Shifts.Add(shift);
-        await _context.SaveChangesAsync();
-
-        return Ok(new { success = true, data = shift, message = "Mở ca làm việc thành công." });
+        await _shiftRepository.AddAsync(shift);
+ 
+        return Ok(shift);
     }
 
     [HttpPost("close")]
     [Authorize(Roles = "Owner,ShiftLeader")]
     public async Task<IActionResult> CloseShift([FromBody] CloseShiftRequest request)
     {
-        var activeShift = await _context.Shifts
-            .FirstOrDefaultAsync(s => s.Status == "Open");
+        var activeShift = await _shiftRepository.GetActiveShiftAsync();
 
         if (activeShift == null)
         {
-            return BadRequest(new { success = false, message = "Không có ca làm việc nào đang mở." });
+            return BadRequest(new { message = "Không có ca làm việc nào đang mở." });
         }
 
-        var staffIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
-            ?? User.FindFirst("sub")?.Value;
+        var staffIdClaim = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value 
+            ?? User?.FindFirst("sub")?.Value;
         
         if (!int.TryParse(staffIdClaim, out int staffId))
         {
-            return Unauthorized(new { success = false, message = "Không xác định được nhân viên." });
+            return Unauthorized(new { message = "Không xác định được nhân viên." });
         }
 
         // Calculate expected sales from completed orders in this shift
-        var shiftOrders = await _context.Orders
-            .Where(o => o.CreatedAt >= activeShift.OpenedAt && o.Status == Domain.Enums.OrderStatus.Completed)
-            .ToListAsync();
+        var shiftOrders = await _orderRepository.GetCompletedOrdersSinceAsync(activeShift.OpenedAt);
 
         decimal expectedCash = activeShift.OpeningCash + shiftOrders.Where(o => o.PaymentMethod == "Cash").Sum(o => o.TotalAmount);
         decimal expectedTransfer = shiftOrders.Where(o => o.PaymentMethod == "Transfer").Sum(o => o.TotalAmount);
@@ -120,9 +112,9 @@ public class ShiftsController : ControllerBase
         activeShift.Notes = request.Notes ?? "";
         activeShift.Status = "Closed";
 
-        await _context.SaveChangesAsync();
-
-        return Ok(new { success = true, data = activeShift, message = "Đóng ca làm việc thành công." });
+        await _shiftRepository.UpdateAsync(activeShift);
+ 
+        return Ok(activeShift);
     }
 }
 

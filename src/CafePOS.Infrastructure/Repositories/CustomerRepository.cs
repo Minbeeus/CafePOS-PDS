@@ -49,4 +49,25 @@ public class CustomerRepository : ICustomerRepository
         _context.Customers.Update(customer);
         await _context.SaveChangesAsync();
     }
+
+    public async Task<(List<Customer> items, int totalItems)> GetPagedCustomersAsync(int page, int pageSize, string? keyword)
+    {
+        var query = _context.Customers.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            query = query.Where(c => c.FullName.Contains(keyword) || 
+                                     c.Phone.Contains(keyword) || 
+                                     c.Email.Contains(keyword));
+        }
+
+        var totalItems = await query.CountAsync();
+        var items = await query
+            .OrderBy(c => c.FullName)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalItems);
+    }
 }
